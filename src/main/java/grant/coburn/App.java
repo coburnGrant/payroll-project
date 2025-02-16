@@ -2,6 +2,7 @@ package grant.coburn;
 
 import java.io.IOException;
 
+import grant.coburn.view.LoginView;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -16,6 +17,8 @@ public class App extends Application {
     private Stage primaryStage;
     private BorderPane rootLayout;
 
+    private Stage loginStage;
+
     @Override
     public void start(Stage stage) throws IOException {
         this.primaryStage = stage;
@@ -23,6 +26,27 @@ public class App extends Application {
 
         this.rootLayout = new BorderPane();
 
+        boolean isLoggedIn = false;
+
+        if (isLoggedIn) {
+            showPrimaryStage();
+        } else {
+            showLoginStage();
+        }
+    }
+
+    private void showLoginStage() {
+        LoginView loginView = new LoginView();
+
+        Scene loginScene = new Scene(loginView);
+        
+        loginStage = new Stage();
+        loginStage.setTitle("Login to Payroll");
+        loginStage.setScene(loginScene);
+        loginStage.show();
+    }
+
+    private void showPrimaryStage() {
         VBox helloWorld = new VBox();
 
         helloWorld.getChildren().add(new Text("Hello world!"));
@@ -31,8 +55,8 @@ public class App extends Application {
         
         scene = new Scene(rootLayout, 800, 600);
 
-        stage.setScene(scene);
-        stage.show();
+        primaryStage.setScene(scene);
+        primaryStage.show();
     }
 
     static void setRoot(String fxml) throws IOException {

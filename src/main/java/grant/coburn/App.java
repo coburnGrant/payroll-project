@@ -2,14 +2,16 @@ package grant.coburn;
 
 import java.io.IOException;
 
+import grant.coburn.dao.UserDAO;
+import grant.coburn.model.User;
+import grant.coburn.util.PasswordUtil;
+import grant.coburn.view.AdminDashboardView;
+import grant.coburn.view.CreateAccountView;
+import grant.coburn.view.EmployeeDashboardView;
 import grant.coburn.view.LoginView;
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.VBox;
-import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
 public class App extends Application {
@@ -17,55 +19,75 @@ public class App extends Application {
     private Stage primaryStage;
     private BorderPane rootLayout;
 
-    private Stage loginStage;
+    private UserDAO userDAO;
 
     @Override
     public void start(Stage stage) throws IOException {
         this.primaryStage = stage;
-        this.primaryStage.setTitle("Payroll");
+        this.userDAO = UserDAO.shared;
 
-        this.rootLayout = new BorderPane();
+        showLoginView();
 
-        boolean isLoggedIn = false;
-
-        if (isLoggedIn) {
-            showPrimaryStage();
-        } else {
-            showLoginStage();
-        }
+        PasswordUtil.print();
     }
 
-    private void showLoginStage() {
+    private void showLoginView() {
         LoginView loginView = new LoginView();
+        loginView.setOnLogin(this::handleLogin);
+        loginView.setOnCreateAccountClick(this::showCreateAccountView);
 
-        Scene loginScene = new Scene(loginView);
-        
-        loginStage = new Stage();
-        loginStage.setTitle("Login to Payroll");
-        loginStage.setScene(loginScene);
-        loginStage.show();
-    }
-
-    private void showPrimaryStage() {
-        VBox helloWorld = new VBox();
-
-        helloWorld.getChildren().add(new Text("Hello world!"));
-
-        rootLayout.setCenter(helloWorld);
-        
-        scene = new Scene(rootLayout, 800, 600);
-
-        primaryStage.setScene(scene);
+        Scene loginScene = new Scene(loginView, 400, 300);
+        primaryStage.setTitle("Payroll System - Login");
+        primaryStage.setScene(loginScene);
         primaryStage.show();
     }
 
-    static void setRoot(String fxml) throws IOException {
-        scene.setRoot(loadFXML(fxml));
+    private User handleLogin(String userId, String password) {
+        User user = userDAO.authenticateUser(userId, password);
+        if (user != null) {
+            showDashboard(user);
+            System.out.println("Login successful for user: " + user.getUserId());
+        } else {
+            System.out.println("Login failed for user: " + userId);
+        }
+        return user;
     }
 
-    private static Parent loadFXML(String fxml) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(App.class.getResource(fxml + ".fxml"));
-        return fxmlLoader.load();
+    private void showCreateAccountView() {
+        CreateAccountView createAccountView = new CreateAccountView();
+        createAccountView.setOnCreateAccount(this::handleCreateAccount);
+        createAccountView.setOnBackToLogin(this::showLoginView);
+        Scene createAccountScene = new Scene(createAccountView, 400, 400);
+        primaryStage.setTitle("Payroll System - Create Account");
+        primaryStage.setScene(createAccountScene);
+    }
+
+    private Boolean handleCreateAccount(User user) {
+        return userDAO.createUser(user);
+    }
+
+    private void showDashboard(User user) {
+        if (user.getUserType() == User.UserType.ADMIN) {
+            showAdminDashboard(user);
+        } else {
+            showEmployeeDashboard(user);
+        }
+    }
+
+    private void showAdminDashboard(User user) {
+        AdminDashboardView dashboard = new AdminDashboardView(user);
+        dashboard.setOnLogout(this::showLoginView);
+        Scene dashboardScene = new Scene(dashboard, 600, 400);
+        primaryStage.setTitle("Payroll System - Admin Dashboard");
+        primaryStage.setScene(dashboardScene);
+    }
+
+    private void showEmployeeDashboard(User user) {
+        EmployeeDashboardView dashboard = new EmployeeDashboardView(user);
+        dashboard.setOnLogout(this::showLoginView);
+        Scene dashboardScene = new Scene(dashboard, 600, 400);
+        primaryStage.setTitle("Payroll System - Employee Dashboard");
+        primaryStage.setScene(dashboardScene);
     }
 
     public static void main(String[] args) {

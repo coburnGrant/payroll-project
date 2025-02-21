@@ -5,17 +5,18 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.RadioButton;
-import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 
 public class LoginView extends BorderPane {
     private VBox mainBox;
 
-    private HBox userIDHBox;
+    private LabeledTextField userIDField;
     private HBox passwordHBox;
 
     private HBox userTypeSelectionVBox;
@@ -34,6 +35,8 @@ public class LoginView extends BorderPane {
         initPasswordTextField();
         
         initUserTypeSelectionVBox();
+        initLoginButton();
+
         initMainBox();
     }
     
@@ -56,11 +59,8 @@ public class LoginView extends BorderPane {
     }
 
     private void initUserIDTextField() {
-        userIDHBox = new HBox(5);
-        Text userIDLabel = new Text("User ID");
-        TextField userIDTextField = new TextField();
-        userIDHBox.getChildren().addAll(userIDLabel, userIDTextField);
-        userIDHBox.setAlignment(Pos.CENTER);
+        userIDField = new LabeledTextField("User ID");
+        userIDField.setAlignment(Pos.CENTER);
     }
 
     private void initPasswordTextField() {
@@ -71,17 +71,20 @@ public class LoginView extends BorderPane {
         passwordHBox.setAlignment(Pos.CENTER);
     }
 
-    private void initMainBox() {
-        mainBox = new VBox(20);
-
-        Text loginText = new Text("Login to Payroll");
-
+    private void initLoginButton() {
         loginButton = new Button("Login");
         loginButton.setOnAction(e -> {
             System.err.println("Login Clicked!");
         });
+    }
 
-        mainBox.getChildren().addAll(loginText, userIDHBox, passwordHBox, userTypeSelectionVBox, loginButton);
+    private void initMainBox() {
+        mainBox = new VBox(20);
+
+        Text loginText = new Text("Login to Payroll");
+        loginText.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+
+        mainBox.getChildren().addAll(loginText, userIDField, passwordHBox, userTypeSelectionVBox, loginButton);
         mainBox.setAlignment(Pos.CENTER);
     }
 

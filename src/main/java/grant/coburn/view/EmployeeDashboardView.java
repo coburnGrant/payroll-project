@@ -4,19 +4,23 @@ import grant.coburn.model.Employee;
 import grant.coburn.model.User;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
+import javafx.stage.Stage;
 
 public class EmployeeDashboardView extends VBox {
     private final User user;
     private final Employee employeeData;
+    private final Stage stage;
     private Runnable onLogout;
 
-    public EmployeeDashboardView(User user, Employee employeeData) {
+    public EmployeeDashboardView(User user, Employee employeeData, Stage stage) {
         this.user = user;
         this.employeeData = employeeData;
+        this.stage = stage;
         setupUI();
     }
 
@@ -75,8 +79,18 @@ public class EmployeeDashboardView extends VBox {
     }
 
     private void handleTimeEntry() {
-        // TODO: Implement time entry
-        System.out.println("Time entry clicked");
+        if (employeeData != null) {
+            TimeEntryView timeEntryView = new TimeEntryView(employeeData);
+            timeEntryView.setOnBack(() -> {
+                stage.setTitle("Payroll System - Employee Dashboard");
+                stage.getScene().setRoot(this);
+            });
+            
+            stage.setTitle("Payroll System - Time Entry");
+            stage.getScene().setRoot(timeEntryView);
+        } else {
+            showError("Employee data not found");
+        }
     }
 
     private void handlePTO() {
@@ -93,5 +107,13 @@ public class EmployeeDashboardView extends VBox {
         if (onLogout != null) {
             onLogout.run();
         }
+    }
+
+    private void showError(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 } 

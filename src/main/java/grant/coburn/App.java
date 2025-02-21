@@ -2,13 +2,13 @@ package grant.coburn;
 
 import java.io.IOException;
 
+import grant.coburn.dao.EmployeeDAO;
 import grant.coburn.dao.UserDAO;
-import grant.coburn.model.User;
 import grant.coburn.model.Employee;
+import grant.coburn.model.User;
 import grant.coburn.util.PasswordUtil;
 import grant.coburn.view.AdminDashboardView;
-import grant.coburn.dao.EmployeeDAO;
-import grant.coburn.view.*;
+import grant.coburn.view.ChangePasswordView;
 import grant.coburn.view.CreateAccountView;
 import grant.coburn.view.EmployeeDashboardView;
 import grant.coburn.view.LoginView;
@@ -48,7 +48,11 @@ public class App extends Application {
     private User handleLogin(String userId, String password) {
         User user = userDAO.authenticateUser(userId, password);
         if (user != null) {
-            showDashboard(user);
+            if (userDAO.mustChangePassword(user.getUserId())) {
+                showChangePasswordView(user, true);
+            } else {
+                showDashboard(user);
+            }
             System.out.println("Login successful for user: " + user.getUserId());
         } else {
             System.out.println("Login failed for user: " + userId);
@@ -76,7 +80,15 @@ public class App extends Application {
             // For employees, load their employee data
             Employee employeeData = null;
             if (user.getEmployeeId() != null) {
+                System.out.println("Found employee ID: " + user.getEmployeeId());
                 employeeData = EmployeeDAO.shared.getEmployee(user.getEmployeeId());
+                if (employeeData != null) {
+                    System.out.println("Found employee: " + employeeData.getFullName());
+                } else {
+                    System.out.println("Could not find employee with ID: " + user.getEmployeeId());
+                }
+            } else {
+                System.out.println("No employee ID found for user: " + user.getUserId());
             }
             showEmployeeDashboard(user, employeeData);
         }
@@ -91,11 +103,22 @@ public class App extends Application {
     }
 
     private void showEmployeeDashboard(User user, Employee employeeData) {
-        EmployeeDashboardView dashboard = new EmployeeDashboardView(user, employeeData);
+        EmployeeDashboardView dashboard = new EmployeeDashboardView(user, employeeData, primaryStage);
         dashboard.setOnLogout(this::showLoginView);
         Scene dashboardScene = new Scene(dashboard, 600, 400);
         primaryStage.setTitle("Payroll System - Employee Dashboard");
         primaryStage.setScene(dashboardScene);
+    }
+
+    private void showChangePasswordView(User user, boolean isForced) {
+        ChangePasswordView changePasswordView = new ChangePasswordView(user, isForced);
+        changePasswordView.setOnSuccess(() -> showDashboard(user));
+        if (!isForced) {
+            changePasswordView.setOnBack(() -> showDashboard(user));
+        }
+        Scene changePasswordScene = new Scene(changePasswordView, 400, 300);
+        primaryStage.setTitle("Payroll System - Change Password");
+        primaryStage.setScene(changePasswordScene);
     }
 
     public static void main(String[] args) {

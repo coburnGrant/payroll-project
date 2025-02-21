@@ -7,11 +7,24 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import grant.coburn.model.Employee;
+import grant.coburn.model.User;
 import grant.coburn.util.DatabaseUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 public class EmployeeDAO {
+    public class EmployeeCredentials {
+        public final String userId;
+        public final String password;
+        public final String fullName;
+    
+        public EmployeeCredentials(String userId, String password, String fullName) {
+            this.userId = userId;
+            this.password = password;
+            this.fullName = fullName;
+        }
+    } 
+
     private final DatabaseUtil dbUtil;
     
     public static final EmployeeDAO shared = new EmployeeDAO(DatabaseUtil.shared);
@@ -55,27 +68,74 @@ public class EmployeeDAO {
         return null;
     }
 
-    public boolean createEmployee(Employee employee) {
-        String sql = "INSERT INTO employees (employee_id, department, job_title, first_name, last_name, " +
-                    "status, date_of_birth, hire_date, pay_type, base_salary, medical_coverage, dependents_count, " +
-                    "company_email, gender, address_line1, address_line2, city, state, zip, picture_path) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    public EmployeeCredentials createEmployee(Employee employee) {
+        Connection conn = null;
+        try {
+            conn = dbUtil.getConnection();
+            conn.setAutoCommit(false);
 
-        try (Connection conn = dbUtil.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            String sql = "INSERT INTO employees (employee_id, department, job_title, first_name, last_name, " +
+                        "status, date_of_birth, hire_date, pay_type, base_salary, medical_coverage, dependents_count, " +
+                        "company_email, gender, address_line1, address_line2, city, state, zip, picture_path) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-            setEmployeeParameters(pstmt, employee);
-            
-            // Debug print
-            System.out.println("Executing SQL: " + pstmt.toString());
-            
-            int rowsAffected = pstmt.executeUpdate();
-            return rowsAffected > 0;
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                setEmployeeParameters(pstmt, employee);
+                pstmt.executeUpdate();
 
+                String tempPassword = generateSecurePassword();
+                User newUser = new User(
+                    employee.getEmployeeId(),
+                    tempPassword,
+                    User.UserType.EMPLOYEE,
+                    employee.getCompanyEmail()
+                );
+                newUser.setEmployeeId(employee.getEmployeeId());
+
+                try {
+                    boolean userCreated = UserDAO.shared.createUser(newUser, conn);
+                    if (!userCreated) {
+                        conn.rollback();
+                        return null;
+                    }
+                    conn.commit();
+                    return new EmployeeCredentials(
+                        employee.getEmployeeId(),
+                        tempPassword,
+                        employee.getFullName()
+                    );
+                } catch (SQLException e) {
+                    conn.rollback();
+                    e.printStackTrace();
+                    return null;
+                }
+            }
         } catch (SQLException e) {
             e.printStackTrace();
-            return false;
+            return null;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
+    }
+
+    private String generateSecurePassword() {
+        // Generate a random 12-character password with letters, numbers, and special characters
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+        StringBuilder password = new StringBuilder();
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        
+        for (int i = 0; i < 12; i++) {
+            password.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        
+        return password.toString();
     }
 
     public boolean updateEmployee(Employee employee) {
@@ -125,18 +185,46 @@ public class EmployeeDAO {
     }
 
     public boolean deleteEmployee(String employeeId) {
-        String sql = "DELETE FROM employees WHERE employee_id = ?";
+        Connection conn = null;
+        try {
+            conn = dbUtil.getConnection();
+            conn.setAutoCommit(false);
 
-        try (Connection conn = dbUtil.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            // First delete the user
+            String deleteUserSql = "DELETE FROM users WHERE employee_id = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(deleteUserSql)) {
+                pstmt.setString(1, employeeId);
+                pstmt.executeUpdate();
+            }
 
-            pstmt.setString(1, employeeId);
-            int rowsAffected = pstmt.executeUpdate();
-            return rowsAffected > 0;
-
+            // Then delete the employee
+            String deleteEmployeeSql = "DELETE FROM employees WHERE employee_id = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(deleteEmployeeSql)) {
+                pstmt.setString(1, employeeId);
+                int rowsAffected = pstmt.executeUpdate();
+                
+                conn.commit();
+                return rowsAffected > 0;
+            }
         } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
             e.printStackTrace();
             return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -191,4 +279,4 @@ public class EmployeeDAO {
         pstmt.setString(19, employee.getZip());
         pstmt.setString(20, employee.getPicturePath());
     }
-} 
+}

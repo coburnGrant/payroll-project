@@ -26,14 +26,7 @@ public class Employee {
     private Integer dependentsCount;
 
     public enum Status {
-        ACTIVE, TERMINATED;  // Add toString override for debugging
-        
-        @Override
-        public String toString() {
-            String value = super.toString();
-            System.out.println("Converting Status enum to string: '" + value + "'");
-            return value;
-        }
+        ACTIVE, TERMINATED;
     }
 
     public enum Gender {

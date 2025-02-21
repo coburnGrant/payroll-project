@@ -20,7 +20,9 @@ public class UserDAO {
     }
 
     public User authenticateUser(String userId, String password) {
-        String sql = "SELECT * FROM users WHERE user_id = ?";
+        String sql = "SELECT u.*, e.employee_id FROM users u " +
+                     "LEFT JOIN employees e ON u.user_id = e.user_id " +
+                     "WHERE u.user_id = ?";
         
         try (Connection conn = dbUtil.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -40,7 +42,7 @@ public class UserDAO {
                             rs.getString("email")
                         );
                         
-                        // Handle potentially null employee_id
+                        // Get employee_id from the join
                         String employeeId = rs.getString("employee_id");
                         if (!rs.wasNull()) {
                             user.setEmployeeId(employeeId);
@@ -56,13 +58,11 @@ public class UserDAO {
         return null;
     }
 
-    public boolean createUser(User user) {
-        String sql = "INSERT INTO users (user_id, password, user_type, email, employee_id) " +
-                    "VALUES (?, ?, ?, ?, ?)";
+    public boolean createUser(User user, Connection conn) throws SQLException {
+        String sql = "INSERT INTO users (user_id, password, user_type, email, employee_id, must_change_password) " +
+                    "VALUES (?, ?, ?, ?, ?, TRUE)";
         
-        try (Connection conn = dbUtil.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             String hashedPassword = BCrypt.hashpw(user.getPassword(), BCrypt.gensalt());
             
             pstmt.setString(1, user.getUserId());
@@ -71,9 +71,13 @@ public class UserDAO {
             pstmt.setString(4, user.getEmail());
             pstmt.setString(5, user.getEmployeeId());
             
-            int rowsAffected = pstmt.executeUpdate();
-            return rowsAffected > 0;
-            
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+
+    public boolean createUser(User user) {
+        try (Connection conn = dbUtil.getConnection()) {
+            return createUser(user, conn);
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -105,6 +109,55 @@ public class UserDAO {
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
             
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean mustChangePassword(String userId) {
+        String sql = "SELECT must_change_password FROM users WHERE user_id = ?";
+        
+        try (Connection conn = dbUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, userId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBoolean("must_change_password");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean changePassword(String userId, String currentPassword, String newPassword) {
+        // First verify current password
+        String sql = "SELECT password FROM users WHERE user_id = ?";
+        
+        try (Connection conn = dbUtil.getConnection()) {
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, userId);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    if (rs.next()) {
+                        String hashedPassword = rs.getString("password");
+                        if (!BCrypt.checkpw(currentPassword, hashedPassword)) {
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            // Update password and reset must_change_password flag
+            sql = "UPDATE users SET password = ?, must_change_password = FALSE WHERE user_id = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                String newHashedPassword = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+                pstmt.setString(1, newHashedPassword);
+                pstmt.setString(2, userId);
+                return pstmt.executeUpdate() > 0;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
             return false;

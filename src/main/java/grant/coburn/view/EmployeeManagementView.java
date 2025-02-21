@@ -9,9 +9,13 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
@@ -138,7 +142,7 @@ public class EmployeeManagementView extends BorderPane {
             );
             stage.getScene().setRoot(formView);
         } else {
-            showAlert("Please select an employee to edit");
+            showAlert("Please select an employee to edit", AlertType.INFORMATION);
         }
     }
 
@@ -148,10 +152,10 @@ public class EmployeeManagementView extends BorderPane {
             if (employeeDAO.deleteEmployee(selected.getEmployeeId())) {
                 loadEmployees();
             } else {
-                showAlert("Failed to delete employee");
+                showAlert("Failed to delete employee", AlertType.ERROR);
             }
         } else {
-            showAlert("Please select an employee to delete");
+            showAlert("Please select an employee to delete", AlertType.INFORMATION);
         }
     }
 
@@ -161,8 +165,8 @@ public class EmployeeManagementView extends BorderPane {
         }
     }
 
-    private void showAlert(String message) {
-        Alert alert = new Alert(Alert.AlertType.WARNING);
+    private void showAlert(String message, Alert.AlertType type) {
+        Alert alert = new Alert(type);
         alert.setTitle("Warning");
         alert.setHeaderText(null);
         alert.setContentText(message);
@@ -175,12 +179,35 @@ public class EmployeeManagementView extends BorderPane {
     }
 
     private void saveNewEmployee(Employee employee) {
-        if (employeeDAO.createEmployee(employee)) {
+        EmployeeDAO.EmployeeCredentials credentials = employeeDAO.createEmployee(employee);
+        if (credentials != null) {
+            showCredentialsAlert(credentials);
             loadEmployees();
             stage.getScene().setRoot(this);
         } else {
-            showAlert("Failed to create employee");
+            showAlert("Failed to create employee", Alert.AlertType.ERROR);
         }
+    }
+
+    private void showCredentialsAlert(EmployeeDAO.EmployeeCredentials credentials) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Employee Created Successfully");
+        dialog.setHeaderText("Login Credentials for " + credentials.fullName);
+
+        TextArea textArea = new TextArea(String.format(
+            "User ID: %s\n" +
+            "Temporary Password: %s\n\n" +
+            "Please provide these credentials to the employee.\n" +
+            "They will be required to change their password on first login.",
+            credentials.userId, credentials.password));
+        textArea.setEditable(false);
+        textArea.setWrapText(true);
+        textArea.setPrefRowCount(6);
+        textArea.setPrefColumnCount(30);
+
+        dialog.getDialogPane().setContent(textArea);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.OK);
+        dialog.showAndWait();
     }
 
     private void updateEmployee(Employee employee) {
@@ -188,7 +215,7 @@ public class EmployeeManagementView extends BorderPane {
             loadEmployees();
             stage.getScene().setRoot(this);
         } else {
-            showAlert("Failed to update employee");
+            showAlert("Failed to update employee", AlertType.ERROR);
         }
     }
 } 

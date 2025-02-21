@@ -33,12 +33,20 @@ public class UserDAO {
                     
                     // Verify the password using BCrypt
                     if (BCrypt.checkpw(password, hashedPassword)) {
-                        return new User(
+                        User user = new User(
                             rs.getString("user_id"),
                             hashedPassword,
                             User.UserType.valueOf(rs.getString("user_type")),
                             rs.getString("email")
                         );
+                        
+                        // Handle potentially null employee_id
+                        String employeeId = rs.getString("employee_id");
+                        if (!rs.wasNull()) {
+                            user.setEmployeeId(employeeId);
+                        }
+                        
+                        return user;
                     }
                 }
             }
@@ -49,7 +57,8 @@ public class UserDAO {
     }
 
     public boolean createUser(User user) {
-        String sql = "INSERT INTO users (user_id, password, user_type, email) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO users (user_id, password, user_type, email, employee_id) " +
+                    "VALUES (?, ?, ?, ?, ?)";
         
         try (Connection conn = dbUtil.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -60,6 +69,7 @@ public class UserDAO {
             pstmt.setString(2, hashedPassword);
             pstmt.setString(3, user.getUserType().toString());
             pstmt.setString(4, user.getEmail());
+            pstmt.setString(5, user.getEmployeeId());
             
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;

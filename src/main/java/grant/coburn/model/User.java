@@ -5,6 +5,7 @@ public class User {
     private String password;
     private UserType userType;
     private String email;
+    private String employeeId;
 
     public enum UserType {
         ADMIN,
@@ -50,5 +51,13 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getEmployeeId() {
+        return employeeId;
+    }
+
+    public void setEmployeeId(String employeeId) {
+        this.employeeId = employeeId;
     }
 } 

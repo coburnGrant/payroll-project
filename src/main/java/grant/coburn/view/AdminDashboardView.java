@@ -7,13 +7,16 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
+import javafx.stage.Stage;
 
 public class AdminDashboardView extends VBox {
     private final User user;
+    private final Stage stage;
     private Runnable onLogout;
 
-    public AdminDashboardView(User user) {
+    public AdminDashboardView(User user, Stage stage) {
         this.user = user;
+        this.stage = stage;
         setupUI();
     }
 
@@ -37,7 +40,7 @@ public class AdminDashboardView extends VBox {
         Button reportsButton = new Button("Generate Reports");
         Button logoutButton = new Button("Logout");
 
-        employeeMgmtButton.setOnAction(e -> handleEmployeeManagement());
+        employeeMgmtButton.setOnAction(e -> showEmployeeManagement());
         payrollButton.setOnAction(e -> handlePayroll());
         reportsButton.setOnAction(e -> handleReports());
         logoutButton.setOnAction(e -> handleLogout());
@@ -58,9 +61,15 @@ public class AdminDashboardView extends VBox {
         );
     }
 
-    private void handleEmployeeManagement() {
-        // TODO: Implement employee management
-        System.out.println("Employee management clicked");
+    private void showEmployeeManagement() {
+        EmployeeManagementView empView = new EmployeeManagementView(stage);
+        empView.setOnBack(() -> {
+            stage.setTitle("Payroll System - Admin Dashboard");
+            stage.getScene().setRoot(this);
+        });
+        
+        stage.setTitle("Payroll System - Employee Management");
+        stage.getScene().setRoot(empView);
     }
 
     private void handlePayroll() {

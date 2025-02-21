@@ -4,8 +4,11 @@ import java.io.IOException;
 
 import grant.coburn.dao.UserDAO;
 import grant.coburn.model.User;
+import grant.coburn.model.Employee;
 import grant.coburn.util.PasswordUtil;
 import grant.coburn.view.AdminDashboardView;
+import grant.coburn.dao.EmployeeDAO;
+import grant.coburn.view.*;
 import grant.coburn.view.CreateAccountView;
 import grant.coburn.view.EmployeeDashboardView;
 import grant.coburn.view.LoginView;
@@ -70,20 +73,25 @@ public class App extends Application {
         if (user.getUserType() == User.UserType.ADMIN) {
             showAdminDashboard(user);
         } else {
-            showEmployeeDashboard(user);
+            // For employees, load their employee data
+            Employee employeeData = null;
+            if (user.getEmployeeId() != null) {
+                employeeData = EmployeeDAO.shared.getEmployee(user.getEmployeeId());
+            }
+            showEmployeeDashboard(user, employeeData);
         }
     }
 
     private void showAdminDashboard(User user) {
-        AdminDashboardView dashboard = new AdminDashboardView(user);
+        AdminDashboardView dashboard = new AdminDashboardView(user, primaryStage);
         dashboard.setOnLogout(this::showLoginView);
         Scene dashboardScene = new Scene(dashboard, 600, 400);
         primaryStage.setTitle("Payroll System - Admin Dashboard");
         primaryStage.setScene(dashboardScene);
     }
 
-    private void showEmployeeDashboard(User user) {
-        EmployeeDashboardView dashboard = new EmployeeDashboardView(user);
+    private void showEmployeeDashboard(User user, Employee employeeData) {
+        EmployeeDashboardView dashboard = new EmployeeDashboardView(user, employeeData);
         dashboard.setOnLogout(this::showLoginView);
         Scene dashboardScene = new Scene(dashboard, 600, 400);
         primaryStage.setTitle("Payroll System - Employee Dashboard");

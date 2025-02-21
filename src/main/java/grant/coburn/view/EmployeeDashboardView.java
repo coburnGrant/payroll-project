@@ -1,5 +1,6 @@
 package grant.coburn.view;
 
+import grant.coburn.model.Employee;
 import grant.coburn.model.User;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -10,10 +11,12 @@ import javafx.scene.text.Text;
 
 public class EmployeeDashboardView extends VBox {
     private final User user;
+    private final Employee employeeData;
     private Runnable onLogout;
 
-    public EmployeeDashboardView(User user) {
+    public EmployeeDashboardView(User user, Employee employeeData) {
         this.user = user;
+        this.employeeData = employeeData;
         setupUI();
     }
 
@@ -29,8 +32,20 @@ public class EmployeeDashboardView extends VBox {
         Text title = new Text("Employee Dashboard");
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
 
-        Label welcomeLabel = new Label("Welcome, " + user.getUserId());
+        // Use employee's full name if available, otherwise fall back to user ID
+        String displayName = (employeeData != null) ? employeeData.getFullName() : user.getUserId();
+        Label welcomeLabel = new Label("Welcome, " + displayName);
         welcomeLabel.setStyle("-fx-font-size: 16px;");
+
+        // Add employee details if available
+        VBox detailsBox = new VBox(10);
+        detailsBox.setAlignment(Pos.CENTER);
+        if (employeeData != null) {
+            Text departmentText = new Text("Department: " + employeeData.getDepartment());
+            Text jobTitleText = new Text("Position: " + employeeData.getJobTitle());
+            Text emailText = new Text("Email: " + employeeData.getCompanyEmail());
+            detailsBox.getChildren().addAll(departmentText, jobTitleText, emailText);
+        }
 
         Button timeEntryButton = new Button("Enter Time");
         Button ptoButton = new Button("Request PTO");
@@ -51,6 +66,7 @@ public class EmployeeDashboardView extends VBox {
         this.getChildren().addAll(
             title,
             welcomeLabel,
+            detailsBox,
             timeEntryButton,
             ptoButton,
             paycheckButton,

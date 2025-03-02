@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import grant.coburn.model.User;
 import grant.coburn.util.DatabaseUtil;
 import grant.coburn.util.PasswordUtil;
+import grant.coburn.util.PasswordValidationException;
 
 public class UserDAO {
     private final DatabaseUtil dbUtil;
@@ -134,8 +135,15 @@ public class UserDAO {
         return false;
     }
 
-    public boolean changePassword(String userId, String currentPassword, String newPassword) {
-        // First verify current password
+    public boolean changePassword(String userId, String currentPassword, String newPassword) throws PasswordValidationException {
+        // Validate new password
+        try { 
+            PasswordUtil.isValidPassword(newPassword);
+        } catch (PasswordValidationException e) {
+            throw e;
+        }
+
+        // Verify current password
         String sql = "SELECT password FROM users WHERE user_id = ?";
         
         try (Connection conn = dbUtil.getConnection()) {

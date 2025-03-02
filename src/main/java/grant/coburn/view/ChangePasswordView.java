@@ -1,10 +1,15 @@
 package grant.coburn.view;
 
-import grant.coburn.model.User;
 import grant.coburn.dao.UserDAO;
+import grant.coburn.model.User;
+import grant.coburn.util.PasswordValidationException;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Control;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
@@ -91,19 +96,24 @@ public class ChangePasswordView extends VBox {
             return;
         }
 
-        if (newPassword.length() < 8) {
-            showError("Password must be at least 8 characters long");
-            return;
+        boolean success;
+        String errorMessage = "Current password is incorrect";
+
+        try {
+            success = UserDAO.shared.changePassword(user.getUserId(), currentPassword, newPassword);
+        } catch (PasswordValidationException e) {
+            success = false;
+            errorMessage = e.getMessage();
         }
 
-        // Try to change password
-        if (UserDAO.shared.changePassword(user.getUserId(), currentPassword, newPassword)) {
+        if (success) {
             showSuccess("Password changed successfully");
+            
             if (onSuccess != null) {
                 onSuccess.run();
             }
         } else {
-            showError("Current password is incorrect");
+            showError(errorMessage);
         }
     }
 

@@ -65,9 +65,77 @@ public class PasswordUtil {
         return encryptedPassword.equals(hashedPassword);
     }
 
+    /**
+     * Validates if a password meets the required criteria:
+     * - At least 8 characters long
+     * - Contains at least one uppercase letter
+     * - Contains at least one lowercase letter
+     * - Contains at least one number
+     * - Contains at least one special character
+     * - No spaces allowed
+     * @param password The password to validate
+     * @return True if the password meets all criteria
+     * @throws PasswordValidationException if the password doesn't meet the criteria
+     */
+    public static boolean isValidPassword(String password) throws PasswordValidationException {
+        if (password == null) {
+            throw new PasswordValidationException("Password cannot be null");
+        }
+        
+        if (password.isEmpty()) {
+            throw new PasswordValidationException("Password cannot be empty");
+        }
+
+        if (password.contains(" ")) {
+            throw new PasswordValidationException("Password cannot contain spaces");
+        }
+
+        if (password.length() < 8) {
+            throw new PasswordValidationException("Password must be at least 8 characters long");
+        }
+
+        if (!password.matches(".*[A-Z].*")) {
+            throw new PasswordValidationException("Password must contain at least one uppercase letter");
+        }
+
+        if (!password.matches(".*[a-z].*")) {
+            throw new PasswordValidationException("Password must contain at least one lowercase letter");
+        }
+
+        if (!password.matches(".*\\d.*")) {
+            throw new PasswordValidationException("Password must contain at least one number");
+        }
+
+        if (!password.matches(".*[!@#$%^&*()\\-_=+\\[\\]{};:'\",.<>/?].*")) {
+            throw new PasswordValidationException("Password must contain at least one special character");
+        }
+        
+        return true;
+    }
+
     public static void main(String[] args) {
-        String password = "admin123";
-        System.out.println("Password: " + password + "\n");
+        String invalidPassword = "admin123";
+
+        System.out.println("Invalid Password: " + invalidPassword + "\n");
+
+        try {
+            isValidPassword(invalidPassword);
+        } catch (PasswordValidationException e) {
+            System.err.println(e.getMessage());
+        }
+
+        String password = "Admin123!";
+
+        System.out.println("\nValid Password: " + password + "\n");
+
+        try {
+            isValidPassword(password);
+        } catch (PasswordValidationException e) {
+            System.err.println(e.getMessage());
+        }
+
+        System.err.println("Password is valid");
+
         String md5Hash = encryptPasswordMD5(password);
         String bcryptHash = bcryptPassword(password);
 

@@ -72,17 +72,16 @@ public class LoginView extends VBox {
         Label passwordLabel = new Label("Password:");
         passwordField = new PasswordField();
         passwordField.setPromptText("Enter your password");
+        passwordField.setOnKeyPressed(event -> {
+            if (event.getCode() == javafx.scene.input.KeyCode.ENTER && 
+                !userIdField.getText().isEmpty() && 
+                !passwordField.getText().isEmpty()) {
+                handleLogin();
+            }
+        });
 
         Button loginButton = new Button("Login");
         loginButton.setOnAction(e -> handleLogin());
-
-        // Add "Create Account" button below login button
-        Button createAccountButton = new Button("Create New Account");
-        createAccountButton.setOnAction(e -> {
-            if (onCreateAccountClick != null) {
-                onCreateAccountClick.run();
-            }
-        });
 
         // Add components to grid
         grid.add(userTypeLabel, 0, 0);
@@ -92,9 +91,8 @@ public class LoginView extends VBox {
         grid.add(passwordLabel, 0, 2);
         grid.add(passwordField, 1, 2);
         grid.add(loginButton, 1, 3);
-        grid.add(createAccountButton, 1, 4);
 
-        this.getChildren().addAll(title, grid);
+        this.getChildren().addAll(title, grid, loginButton);
     }
 
     private void handleLogin() {

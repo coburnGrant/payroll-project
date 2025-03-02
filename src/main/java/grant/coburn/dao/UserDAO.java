@@ -5,10 +5,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.mindrot.jbcrypt.BCrypt;
-
 import grant.coburn.model.User;
 import grant.coburn.util.DatabaseUtil;
+import grant.coburn.util.PasswordUtil;
 
 public class UserDAO {
     private final DatabaseUtil dbUtil;
@@ -24,32 +23,34 @@ public class UserDAO {
                      "LEFT JOIN employees e ON u.user_id = e.user_id " +
                      "WHERE u.user_id = ?";
         
-        try (Connection conn = dbUtil.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
+        try {
+            Connection conn = dbUtil.getConnection();
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+
             pstmt.setString(1, userId);
-            
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    String hashedPassword = rs.getString("password");
+
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                String hashedPassword = rs.getString("password");
+                
+                // Verify the password using BCrypt
+                if (PasswordUtil.bcryptCheckPassword(password, hashedPassword)) {
+
+                    User user = new User(
+                        rs.getString("user_id"),
+                        hashedPassword,
+                        User.UserType.valueOf(rs.getString("user_type")),
+                        rs.getString("email")
+                    );
                     
-                    // Verify the password using BCrypt
-                    if (BCrypt.checkpw(password, hashedPassword)) {
-                        User user = new User(
-                            rs.getString("user_id"),
-                            hashedPassword,
-                            User.UserType.valueOf(rs.getString("user_type")),
-                            rs.getString("email")
-                        );
-                        
-                        // Get employee_id from the join
-                        String employeeId = rs.getString("employee_id");
-                        if (!rs.wasNull()) {
-                            user.setEmployeeId(employeeId);
-                        }
-                        
-                        return user;
+                    // Get employee_id from the join
+                    String employeeId = rs.getString("employee_id");
+                    if (!rs.wasNull()) {
+                        user.setEmployeeId(employeeId);
                     }
+                    
+                    return user;
                 }
             }
         } catch (SQLException e) {
@@ -63,7 +64,7 @@ public class UserDAO {
                     "VALUES (?, ?, ?, ?, ?, TRUE)";
         
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            String hashedPassword = BCrypt.hashpw(user.getPassword(), BCrypt.gensalt());
+            String hashedPassword = PasswordUtil.bcryptPassword(user.getPassword());
             
             pstmt.setString(1, user.getUserId());
             pstmt.setString(2, hashedPassword);
@@ -143,7 +144,7 @@ public class UserDAO {
                 try (ResultSet rs = pstmt.executeQuery()) {
                     if (rs.next()) {
                         String hashedPassword = rs.getString("password");
-                        if (!BCrypt.checkpw(currentPassword, hashedPassword)) {
+                        if (!PasswordUtil.bcryptCheckPassword(currentPassword, hashedPassword)) {
                             return false;
                         }
                     }
@@ -153,7 +154,7 @@ public class UserDAO {
             // Update password and reset must_change_password flag
             sql = "UPDATE users SET password = ?, must_change_password = FALSE WHERE user_id = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                String newHashedPassword = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+                String newHashedPassword = PasswordUtil.bcryptPassword(newPassword);
                 pstmt.setString(1, newHashedPassword);
                 pstmt.setString(2, userId);
                 return pstmt.executeUpdate() > 0;

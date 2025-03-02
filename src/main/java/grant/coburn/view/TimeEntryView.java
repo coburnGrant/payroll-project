@@ -88,7 +88,7 @@ public class TimeEntryView extends VBox {
         datePicker.setOnAction(e -> updateCalculations());
         addFormField(grid, "Date:", datePicker, row++);
 
-        // Hours field (disabled for salary unless PTO)
+        // Hours field (always disabled for salary unless PTO)
         hoursField = new TextField();
         hoursField.setPromptText("Enter hours");
         hoursField.setDisable(employee.getPayType() == Employee.PayType.SALARY);
@@ -104,7 +104,11 @@ public class TimeEntryView extends VBox {
         // PTO checkbox
         ptoCheckBox = new CheckBox("PTO");
         ptoCheckBox.setOnAction(e -> {
-            hoursField.setDisable(employee.getPayType() == Employee.PayType.SALARY && !ptoCheckBox.isSelected());
+            boolean isSalary = employee.getPayType() == Employee.PayType.SALARY;
+            hoursField.setDisable(isSalary && !ptoCheckBox.isSelected());
+            if (isSalary && !ptoCheckBox.isSelected()) {
+                hoursField.clear();  // Clear hours when disabled
+            }
             updateCalculations();
         });
         grid.add(ptoCheckBox, 1, row++);

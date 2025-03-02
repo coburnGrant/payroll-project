@@ -172,8 +172,6 @@ public class EmployeeDAO {
             
             // WHERE clause parameter
             pstmt.setString(20, employee.getEmployeeId());
-
-            System.out.println("Executing SQL: " + pstmt.toString());
             
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;

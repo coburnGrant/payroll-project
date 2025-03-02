@@ -6,7 +6,6 @@ import grant.coburn.dao.EmployeeDAO;
 import grant.coburn.dao.UserDAO;
 import grant.coburn.model.Employee;
 import grant.coburn.model.User;
-import grant.coburn.util.PasswordUtil;
 import grant.coburn.view.AdminDashboardView;
 import grant.coburn.view.ChangePasswordView;
 import grant.coburn.view.CreateAccountView;
@@ -30,8 +29,6 @@ public class App extends Application {
         this.userDAO = UserDAO.shared;
 
         showLoginView();
-
-        PasswordUtil.print();
     }
 
     private void showLoginView() {

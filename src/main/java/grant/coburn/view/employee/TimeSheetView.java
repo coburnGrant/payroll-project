@@ -190,9 +190,13 @@ public class TimeSheetView extends BorderPane {
             
             confirmDialog.showAndWait().ifPresent(response -> {
                 if (response == javafx.scene.control.ButtonType.OK) {
-                    // TODO: Implement delete in TimeEntryDAO
-                    loadTimeEntries();
-                    showSuccess("Time entry deleted successfully!");
+                    boolean success = TimeEntryDAO.shared().deleteTimeEntry(selectedEntry);
+                    if (success) {
+                        loadTimeEntries();
+                        showSuccess("Time entry deleted successfully!");
+                    } else {
+                        showError("Failed to delete time entry. It may be locked or no longer exists.");
+                    }
                 }
             });
         }
@@ -201,6 +205,14 @@ public class TimeSheetView extends BorderPane {
     private void showSuccess(String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Success");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    private void showError(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();

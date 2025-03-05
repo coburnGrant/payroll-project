@@ -52,20 +52,17 @@ public class EmployeeDashboardView extends VBox {
         }
 
         Button timeEntryButton = new Button("Enter Time");
-        Button ptoButton = new Button("Request PTO");
         Button paycheckButton = new Button("View Paychecks");
         Button timeSheetButton = new Button("View Time Sheet");
         Button logoutButton = new Button("Logout");
 
         timeEntryButton.setOnAction(e -> handleTimeEntry());
-        ptoButton.setOnAction(e -> handlePTO());
         paycheckButton.setOnAction(e -> handlePaycheck());
         timeSheetButton.setOnAction(e -> handleTimeSheet());
         logoutButton.setOnAction(e -> handleLogout());
 
         // Make buttons wider
         timeEntryButton.setPrefWidth(200);
-        ptoButton.setPrefWidth(200);
         paycheckButton.setPrefWidth(200);
         timeSheetButton.setPrefWidth(200);
         logoutButton.setPrefWidth(200);
@@ -76,7 +73,6 @@ public class EmployeeDashboardView extends VBox {
             detailsBox,
             timeEntryButton,
             timeSheetButton,
-            ptoButton,
             paycheckButton,
             logoutButton
         );
@@ -95,11 +91,6 @@ public class EmployeeDashboardView extends VBox {
         } else {
             showError("Employee data not found");
         }
-    }
-
-    private void handlePTO() {
-        // TODO: Implement PTO request
-        System.out.println("PTO request clicked");
     }
 
     private void handlePaycheck() {

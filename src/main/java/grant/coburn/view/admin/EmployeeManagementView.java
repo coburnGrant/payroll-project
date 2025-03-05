@@ -1,10 +1,12 @@
-package grant.coburn.view;
+package grant.coburn.view.admin;
 
 import java.text.NumberFormat;
 import java.util.Locale;
 
 import grant.coburn.dao.EmployeeDAO;
 import grant.coburn.model.Employee;
+import grant.coburn.view.EmployeeFormView;
+import grant.coburn.view.TimeSheetView;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -26,9 +28,10 @@ public class EmployeeManagementView extends BorderPane {
     private Button editButton;
     private Button deleteButton;
     private Button backButton;
+    private Button viewTimeSheetButton;
     private Runnable onBack;
     private final EmployeeDAO employeeDAO = EmployeeDAO.shared;
-    private Stage stage;
+    private final Stage stage;
 
     public EmployeeManagementView(Stage stage) {
         this.stage = stage;
@@ -50,22 +53,27 @@ public class EmployeeManagementView extends BorderPane {
         editButton = new Button("Edit Employee");
         deleteButton = new Button("Delete Employee");
         backButton = new Button("Back to Dashboard");
+        viewTimeSheetButton = new Button("View Time Sheet");
+        viewTimeSheetButton.setDisable(true);
 
         // Button actions
         addButton.setOnAction(e -> handleAddEmployee());
         editButton.setOnAction(e -> handleEditEmployee());
         deleteButton.setOnAction(e -> handleDeleteEmployee());
         backButton.setOnAction(e -> handleBack());
+        viewTimeSheetButton.setOnAction(e -> viewSelectedEmployeeTimeSheet());
 
         // Button container
         HBox buttonBox = new HBox(10);
         buttonBox.setPadding(new Insets(10));
-        buttonBox.getChildren().addAll(addButton, editButton, deleteButton, backButton);
+        buttonBox.getChildren().addAll(addButton, editButton, deleteButton, viewTimeSheetButton, backButton);
 
         // Layout
         this.setCenter(employeeTable);
         this.setBottom(buttonBox);
         this.setPadding(new Insets(10));
+
+        setupTableSelection();
     }
 
     private void setupTable() {
@@ -121,6 +129,15 @@ public class EmployeeManagementView extends BorderPane {
             idCol, deptCol, jobTitleCol, nameCol, dobCol, statusCol, hireDateCol, 
             payTypeCol, salaryCol, medicalCol, dependentsCol
         );
+    }
+
+    private void setupTableSelection() {
+        employeeTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            boolean hasSelection = newSelection != null;
+            editButton.setDisable(!hasSelection);
+            deleteButton.setDisable(!hasSelection);
+            viewTimeSheetButton.setDisable(!hasSelection);
+        });
     }
 
     private void handleAddEmployee() {
@@ -216,6 +233,18 @@ public class EmployeeManagementView extends BorderPane {
             stage.getScene().setRoot(this);
         } else {
             showAlert("Failed to update employee", AlertType.ERROR);
+        }
+    }
+
+    private void viewSelectedEmployeeTimeSheet() {
+        Employee selectedEmployee = employeeTable.getSelectionModel().getSelectedItem();
+        if (selectedEmployee != null) {
+            Stage timeSheetStage = new Stage();
+            timeSheetStage.initOwner(stage);  // Set the owner stage
+            TimeSheetView timeSheetView = new TimeSheetView(timeSheetStage, selectedEmployee, () -> {
+                timeSheetStage.close();
+            });
+            timeSheetView.show();
         }
     }
 } 

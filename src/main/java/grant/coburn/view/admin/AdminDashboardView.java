@@ -1,4 +1,4 @@
-package grant.coburn.view;
+package grant.coburn.view.admin;
 
 import grant.coburn.model.User;
 import javafx.geometry.Insets;
@@ -70,6 +70,8 @@ public class AdminDashboardView extends VBox {
         
         stage.setTitle("Payroll System - Employee Management");
         stage.getScene().setRoot(empView);
+        stage.setWidth(800);
+        stage.setHeight(600);
     }
 
     private void handlePayroll() {

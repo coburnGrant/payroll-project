@@ -56,9 +56,8 @@ public class PayrollCalculator {
         result.employerMedicareTax = result.grossPay * MEDICARE_RATE;
 
         // Medical and dependents
-        result.medicalDeduction = (employee.getMedicalCoverage() == Employee.MedicalCoverage.SINGLE) 
-            ? SINGLE_MEDICAL_RATE 
-            : FAMILY_MEDICAL_RATE;
+        result.medicalDeduction = (employee.getPayType() == Employee.PayType.SALARY) ? 
+            ((employee.getMedicalCoverage() == Employee.MedicalCoverage.SINGLE) ? SINGLE_MEDICAL_RATE : FAMILY_MEDICAL_RATE) : 0;
         result.dependentStipend = employee.getDependentsCount() * DEPENDENT_STIPEND;
 
         // Calculate net pay

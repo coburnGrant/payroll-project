@@ -1,4 +1,4 @@
-package grant.coburn.view;
+package grant.coburn.view.employee;
 
 import grant.coburn.model.Employee;
 import grant.coburn.model.User;
@@ -54,17 +54,20 @@ public class EmployeeDashboardView extends VBox {
         Button timeEntryButton = new Button("Enter Time");
         Button ptoButton = new Button("Request PTO");
         Button paycheckButton = new Button("View Paychecks");
+        Button timeSheetButton = new Button("View Time Sheet");
         Button logoutButton = new Button("Logout");
 
         timeEntryButton.setOnAction(e -> handleTimeEntry());
         ptoButton.setOnAction(e -> handlePTO());
         paycheckButton.setOnAction(e -> handlePaycheck());
+        timeSheetButton.setOnAction(e -> handleTimeSheet());
         logoutButton.setOnAction(e -> handleLogout());
 
         // Make buttons wider
         timeEntryButton.setPrefWidth(200);
         ptoButton.setPrefWidth(200);
         paycheckButton.setPrefWidth(200);
+        timeSheetButton.setPrefWidth(200);
         logoutButton.setPrefWidth(200);
 
         this.getChildren().addAll(
@@ -72,6 +75,7 @@ public class EmployeeDashboardView extends VBox {
             welcomeLabel,
             detailsBox,
             timeEntryButton,
+            timeSheetButton,
             ptoButton,
             paycheckButton,
             logoutButton
@@ -101,6 +105,21 @@ public class EmployeeDashboardView extends VBox {
     private void handlePaycheck() {
         // TODO: Implement paycheck view
         System.out.println("View paychecks clicked");
+    }
+
+    private void handleTimeSheet() {
+        if (employeeData != null) {
+            TimeSheetView timeSheetView = new TimeSheetView(employeeData, stage);
+            timeSheetView.setOnBack(() -> {
+                stage.setTitle("Payroll System - Employee Dashboard");
+                stage.getScene().setRoot(this);
+            });
+            
+            stage.setTitle("Payroll System - Time Sheet");
+            stage.getScene().setRoot(timeSheetView);
+        } else {
+            showError("Employee data not found");
+        }
     }
 
     private void handleLogout() {

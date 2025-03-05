@@ -1,4 +1,4 @@
-package grant.coburn.view;
+package grant.coburn.view.helpers;
 
 import javafx.geometry.Pos;
 import javafx.scene.control.TextField;

@@ -1,7 +1,6 @@
-package grant.coburn.view;
+package grant.coburn.view.employee;
 
 import java.text.NumberFormat;
-import java.time.LocalDate;
 import java.util.Locale;
 
 import grant.coburn.model.Employee;
@@ -10,13 +9,11 @@ import grant.coburn.util.PayrollCalculator;
 import grant.coburn.util.PayrollCalculator.PayrollResult;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
@@ -24,8 +21,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 
-public class TimeEntryView extends VBox {
+public class TimeEntryEditView extends VBox {
     private final Employee employee;
+    private final TimeEntry timeEntry;
     private DatePicker datePicker;
     private TextField hoursField;
     private CheckBox ptoCheckBox;
@@ -40,18 +38,24 @@ public class TimeEntryView extends VBox {
     private Label medicalDeductionLabel;
     private Label dependentStipendLabel;
     private Button saveButton;
-    private Button backButton;
-    private Runnable onBack;
+    private Button cancelButton;
+    private Runnable onSave;
+    private Runnable onCancel;
 
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.US);
 
-    public TimeEntryView(Employee employee) {
+    public TimeEntryEditView(Employee employee, TimeEntry timeEntry) {
         this.employee = employee;
+        this.timeEntry = timeEntry;
         setupUI();
     }
 
-    public void setOnBack(Runnable onBack) {
-        this.onBack = onBack;
+    public void setOnSave(Runnable onSave) {
+        this.onSave = onSave;
+    }
+
+    public void setOnCancel(Runnable onCancel) {
+        this.onCancel = onCancel;
     }
 
     private void setupUI() {
@@ -59,7 +63,7 @@ public class TimeEntryView extends VBox {
         this.setPadding(new Insets(20));
         this.setSpacing(20);
 
-        Text title = new Text("Time Entry");
+        Text title = new Text("Edit Time Entry");
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
 
         // Create a VBox for all content except title
@@ -72,7 +76,11 @@ public class TimeEntryView extends VBox {
         infoBox.setAlignment(Pos.CENTER);
         Text nameText = new Text("Employee: " + employee.getFullName());
         Text payTypeText = new Text("Pay Type: " + employee.getPayType());
-        infoBox.getChildren().addAll(nameText, payTypeText);
+        String payRateText = employee.getPayType() == Employee.PayType.SALARY ? 
+            String.format("Weekly Salary: %s", currencyFormat.format(employee.getBaseSalary())) :
+            String.format("Hourly Rate: %s", currencyFormat.format(employee.getBaseSalary()));
+        Text rateText = new Text(payRateText);
+        infoBox.getChildren().addAll(nameText, payTypeText, rateText);
 
         // Time entry form
         GridPane grid = new GridPane();
@@ -84,12 +92,12 @@ public class TimeEntryView extends VBox {
         int row = 0;
 
         // Date picker
-        datePicker = new DatePicker(LocalDate.now());
+        datePicker = new DatePicker(timeEntry.getWorkDate());
         datePicker.setOnAction(e -> updateCalculations());
         addFormField(grid, "Date:", datePicker, row++);
 
         // Hours field (always disabled for salary unless PTO)
-        hoursField = new TextField();
+        hoursField = new TextField(String.format("%.2f", timeEntry.getHoursWorked()));
         hoursField.setPromptText("Enter hours");
         hoursField.setDisable(employee.getPayType() == Employee.PayType.SALARY);
         hoursField.textProperty().addListener((obs, old, newValue) -> {
@@ -103,6 +111,7 @@ public class TimeEntryView extends VBox {
 
         // PTO checkbox
         ptoCheckBox = new CheckBox("PTO");
+        ptoCheckBox.setSelected(timeEntry.isPto());
         ptoCheckBox.setOnAction(e -> {
             boolean isSalary = employee.getPayType() == Employee.PayType.SALARY;
             hoursField.setDisable(isSalary && !ptoCheckBox.isSelected());
@@ -127,26 +136,45 @@ public class TimeEntryView extends VBox {
 
         VBox resultsBox = new VBox(10);
         resultsBox.setAlignment(Pos.CENTER_LEFT);
-        resultsBox.getChildren().addAll(
-            regularHoursLabel, overtimeHoursLabel,
-            new Separator(),
-            grossPayLabel,
-            stateTaxLabel, federalTaxLabel,
-            socialSecurityLabel, medicareLabel,
-            medicalDeductionLabel, dependentStipendLabel,
-            new Separator(),
-            netPayLabel
-        );
+        
+        // Only show medical deduction for salary employees
+        if (employee.getPayType() == Employee.PayType.SALARY) {
+            resultsBox.getChildren().addAll(
+                regularHoursLabel, overtimeHoursLabel,
+                new Separator(),
+                grossPayLabel,
+                stateTaxLabel, federalTaxLabel,
+                socialSecurityLabel, medicareLabel,
+                medicalDeductionLabel, dependentStipendLabel,
+                new Separator(),
+                netPayLabel
+            );
+        } else {
+            resultsBox.getChildren().addAll(
+                regularHoursLabel, overtimeHoursLabel,
+                new Separator(),
+                grossPayLabel,
+                stateTaxLabel, federalTaxLabel,
+                socialSecurityLabel, medicareLabel,
+                dependentStipendLabel,
+                new Separator(),
+                netPayLabel
+            );
+        }
 
         // Buttons
-        saveButton = new Button("Save Entry");
-        backButton = new Button("Back");
+        saveButton = new Button("Save Changes");
+        cancelButton = new Button("Cancel");
         saveButton.setOnAction(e -> handleSave());
-        backButton.setOnAction(e -> handleBack());
+        cancelButton.setOnAction(e -> {
+            if (onCancel != null) {
+                onCancel.run();
+            }
+        });
 
         HBox buttonBox = new HBox(10);
         buttonBox.setAlignment(Pos.CENTER);
-        buttonBox.getChildren().addAll(saveButton, backButton);
+        buttonBox.getChildren().addAll(saveButton, cancelButton);
 
         // Add all components to content VBox
         content.getChildren().addAll(
@@ -156,13 +184,8 @@ public class TimeEntryView extends VBox {
             buttonBox
         );
 
-        // Create ScrollPane and add content
-        ScrollPane scrollPane = new ScrollPane(content);
-        scrollPane.setFitToWidth(true);
-        scrollPane.setStyle("-fx-background-color: transparent;");
-
-        // Add title and scrollPane to main VBox
-        this.getChildren().addAll(title, scrollPane);
+        // Add title and content to main VBox
+        this.getChildren().addAll(title, content);
 
         // Initial calculations
         updateCalculations();
@@ -191,7 +214,7 @@ public class TimeEntryView extends VBox {
             PayrollResult result = PayrollCalculator.calculatePayroll(
                 employee,
                 java.util.Arrays.asList(entry),
-                employee.getBaseSalary() / 40.0  // Convert weekly salary to hourly rate
+                employee.getBaseSalary()  // Use base salary directly as hourly rate
             );
 
             // Update financial displays
@@ -210,19 +233,30 @@ public class TimeEntryView extends VBox {
     }
 
     private void handleSave() {
-        // TODO: Save time entry to database
-        showSuccess("Time entry saved successfully!");
-    }
+        try {
+            double hours = hoursField.getText().isEmpty() ? 0.0 : Double.parseDouble(hoursField.getText());
+            timeEntry.setWorkDate(datePicker.getValue());
+            timeEntry.setHoursWorked(hours);
+            timeEntry.setPto(ptoCheckBox.isSelected());
 
-    private void handleBack() {
-        if (onBack != null) {
-            onBack.run();
+            // Update in database
+            boolean success = grant.coburn.dao.TimeEntryDAO.shared().updateTimeEntry(timeEntry);
+            
+            if (success) {
+                if (onSave != null) {
+                    onSave.run();
+                }
+            } else {
+                showError("Failed to update time entry. It may be locked or no longer exists.");
+            }
+        } catch (NumberFormatException e) {
+            showError("Please enter a valid number of hours.");
         }
     }
 
-    private void showSuccess(String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Success");
+    private void showError(String message) {
+        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+        alert.setTitle("Error");
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();

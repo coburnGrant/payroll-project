@@ -48,26 +48,44 @@ public class PayrollCalculator {
             // Calculate days in pay period (inclusive)
             long daysInPeriod = payPeriodStart.until(payPeriodEnd.plusDays(1)).getDays();
             double dailyRate = payRate / 365.0;  // Daily rate based on annual salary
-            result.regularPay = dailyRate * daysInPeriod;
+            result.regularPay = Math.round(dailyRate * daysInPeriod * 100.0) / 100.0;  // Round final amount to 2 decimal places
             result.overtimePay = 0;
         } else {
+            // For hourly employees, calculate weekly overtime
+            double weeklyRegularHours = 0.0;
+            double ptoHours = 0.0;
+            
             for (TimeEntry entry : timeEntries) {
-                result.regularPay += entry.getRegularHours() * payRate;
-                result.overtimePay += entry.getOvertimeHours() * (payRate * 1.5);
+                if (entry.isPto()) {
+                    ptoHours += entry.getRegularHours();
+                } else {
+                    weeklyRegularHours += entry.getRegularHours();
+                }
             }
+            
+            // Calculate regular pay for first 40 hours
+            result.regularPay = Math.min(weeklyRegularHours, 40.0) * payRate;
+            
+            // Calculate overtime for hours over 40
+            if (weeklyRegularHours > 40.0) {
+                result.overtimePay = (weeklyRegularHours - 40.0) * (payRate * 1.5);
+            }
+            
+            // Add PTO hours at regular rate
+            result.regularPay += ptoHours * payRate;
         }
 
         result.grossPay = result.regularPay + result.overtimePay;
 
         // Calculate deductions
-        result.stateTax = result.grossPay * STATE_TAX_RATE;
-        result.federalTax = result.grossPay * FEDERAL_TAX_RATE;
-        result.socialSecurityTax = result.grossPay * SOCIAL_SECURITY_RATE;
-        result.medicareTax = result.grossPay * MEDICARE_RATE;
+        result.stateTax = Math.round(result.grossPay * STATE_TAX_RATE * 100.0) / 100.0;
+        result.federalTax = Math.round(result.grossPay * FEDERAL_TAX_RATE * 100.0) / 100.0;
+        result.socialSecurityTax = Math.round(result.grossPay * SOCIAL_SECURITY_RATE * 100.0) / 100.0;
+        result.medicareTax = Math.round(result.grossPay * MEDICARE_RATE * 100.0) / 100.0;
         
         // Employer portions
-        result.employerSocialSecurityTax = result.grossPay * SOCIAL_SECURITY_RATE;
-        result.employerMedicareTax = result.grossPay * MEDICARE_RATE;
+        result.employerSocialSecurityTax = Math.round(result.grossPay * SOCIAL_SECURITY_RATE * 100.0) / 100.0;
+        result.employerMedicareTax = Math.round(result.grossPay * MEDICARE_RATE * 100.0) / 100.0;
 
         // Medical and dependents
         result.medicalDeduction = (employee.getPayType() == Employee.PayType.SALARY) ? 
@@ -75,13 +93,13 @@ public class PayrollCalculator {
         result.dependentStipend = employee.getDependentsCount() * DEPENDENT_STIPEND;
 
         // Calculate net pay
-        result.netPay = result.grossPay 
+        result.netPay = Math.round((result.grossPay 
             - result.stateTax 
             - result.federalTax 
             - result.socialSecurityTax 
             - result.medicareTax 
             - result.medicalDeduction 
-            + result.dependentStipend;
+            + result.dependentStipend) * 100.0) / 100.0;
 
         return result;
     }
@@ -102,23 +120,41 @@ public class PayrollCalculator {
             result.regularPay = payRate / 365.0;
             result.overtimePay = 0;
         } else {
+            // For hourly employees, calculate weekly overtime
+            double weeklyRegularHours = 0.0;
+            double ptoHours = 0.0;
+            
             for (TimeEntry entry : timeEntries) {
-                result.regularPay += entry.getRegularHours() * payRate;
-                result.overtimePay += entry.getOvertimeHours() * (payRate * 1.5);
+                if (entry.isPto()) {
+                    ptoHours += entry.getRegularHours();
+                } else {
+                    weeklyRegularHours += entry.getRegularHours();
+                }
             }
+            
+            // Calculate regular pay for first 40 hours
+            result.regularPay = Math.min(weeklyRegularHours, 40.0) * payRate;
+            
+            // Calculate overtime for hours over 40
+            if (weeklyRegularHours > 40.0) {
+                result.overtimePay = (weeklyRegularHours - 40.0) * (payRate * 1.5);
+            }
+            
+            // Add PTO hours at regular rate
+            result.regularPay += ptoHours * payRate;
         }
 
         result.grossPay = result.regularPay + result.overtimePay;
 
         // Calculate deductions
-        result.stateTax = result.grossPay * STATE_TAX_RATE;
-        result.federalTax = result.grossPay * FEDERAL_TAX_RATE;
-        result.socialSecurityTax = result.grossPay * SOCIAL_SECURITY_RATE;
-        result.medicareTax = result.grossPay * MEDICARE_RATE;
+        result.stateTax = Math.round(result.grossPay * STATE_TAX_RATE * 100.0) / 100.0;
+        result.federalTax = Math.round(result.grossPay * FEDERAL_TAX_RATE * 100.0) / 100.0;
+        result.socialSecurityTax = Math.round(result.grossPay * SOCIAL_SECURITY_RATE * 100.0) / 100.0;
+        result.medicareTax = Math.round(result.grossPay * MEDICARE_RATE * 100.0) / 100.0;
         
         // Employer portions
-        result.employerSocialSecurityTax = result.grossPay * SOCIAL_SECURITY_RATE;
-        result.employerMedicareTax = result.grossPay * MEDICARE_RATE;
+        result.employerSocialSecurityTax = Math.round(result.grossPay * SOCIAL_SECURITY_RATE * 100.0) / 100.0;
+        result.employerMedicareTax = Math.round(result.grossPay * MEDICARE_RATE * 100.0) / 100.0;
 
         // Medical and dependents
         result.medicalDeduction = (employee.getPayType() == Employee.PayType.SALARY) ? 
@@ -126,13 +162,13 @@ public class PayrollCalculator {
         result.dependentStipend = employee.getDependentsCount() * DEPENDENT_STIPEND;
 
         // Calculate net pay
-        result.netPay = result.grossPay 
+        result.netPay = Math.round((result.grossPay 
             - result.stateTax 
             - result.federalTax 
             - result.socialSecurityTax 
             - result.medicareTax 
             - result.medicalDeduction 
-            + result.dependentStipend;
+            + result.dependentStipend) * 100.0) / 100.0;
 
         return result;
     }

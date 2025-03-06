@@ -26,18 +26,9 @@ public class TimeEntry {
             this.regularHours = hoursWorked;
             this.overtimeHours = 0.0;
         } else {
-            // If it's Saturday or hours > 8, calculate overtime
-            boolean isSaturday = workDate.getDayOfWeek().getValue() == 6;
-            if (isSaturday) {
-                this.overtimeHours = hoursWorked;
-                this.regularHours = 0.0;
-            } else if (hoursWorked > 8.0) {
-                this.regularHours = 8.0;
-                this.overtimeHours = hoursWorked - 8.0;
-            } else {
-                this.regularHours = hoursWorked;
-                this.overtimeHours = 0.0;
-            }
+            // All non-PTO hours are regular hours
+            this.regularHours = hoursWorked;
+            this.overtimeHours = 0.0;
         }
     }
 

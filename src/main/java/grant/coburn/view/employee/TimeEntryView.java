@@ -45,6 +45,10 @@ public class TimeEntryView extends VBox {
 
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.US);
 
+    private String formatPercent(double percent) {
+        return String.format("%.2f%%", percent * 100);
+    }
+
     public TimeEntryView(Employee employee) {
         this.employee = employee;
         setupUI();
@@ -122,10 +126,10 @@ public class TimeEntryView extends VBox {
         overtimeHoursLabel = new Label("Overtime Hours: 0.0");
         grossPayLabel = new Label("Gross Pay: $0.00");
         netPayLabel = new Label("Net Pay: $0.00");
-        stateTaxLabel = new Label("State Tax (3.15%): $0.00");
-        federalTaxLabel = new Label("Federal Tax (7.65%): $0.00");
-        socialSecurityLabel = new Label("Social Security (6.2%): $0.00");
-        medicareLabel = new Label("Medicare (1.45%): $0.00");
+        stateTaxLabel = new Label("State Tax (" + formatPercent(PayrollCalculator.STATE_TAX_RATE) + "): $0.00");
+        federalTaxLabel = new Label("Federal Tax (" + formatPercent(PayrollCalculator.FEDERAL_TAX_RATE) + "): $0.00");
+        socialSecurityLabel = new Label("Social Security (" + formatPercent(PayrollCalculator.SOCIAL_SECURITY_RATE) + "): $0.00");
+        medicareLabel = new Label("Medicare (" + formatPercent(PayrollCalculator.MEDICARE_RATE) + "): $0.00");
         medicalDeductionLabel = new Label("Medical Deduction: $0.00");
         dependentStipendLabel = new Label("Dependent Stipend: $0.00");
 
@@ -207,19 +211,18 @@ public class TimeEntryView extends VBox {
             overtimeHoursLabel.setText(String.format("Overtime Hours: %.1f", entry.getOvertimeHours()));
 
             // Calculate payroll
-            PayrollResult result = PayrollCalculator.calculatePayroll(
+            PayrollResult result = PayrollCalculator.calculatePayrollPreview(
                 employee,
-                java.util.Arrays.asList(entry),
-                employee.getBaseSalary()  // Use base salary directly as hourly rate
+                java.util.Arrays.asList(entry)
             );
 
             // Update financial displays
             grossPayLabel.setText("Gross Pay: " + currencyFormat.format(result.grossPay));
             netPayLabel.setText("Net Pay: " + currencyFormat.format(result.netPay));
-            stateTaxLabel.setText("State Tax (3.15%): " + currencyFormat.format(result.stateTax));
-            federalTaxLabel.setText("Federal Tax (7.65%): " + currencyFormat.format(result.federalTax));
-            socialSecurityLabel.setText("Social Security (6.2%): " + currencyFormat.format(result.socialSecurityTax));
-            medicareLabel.setText("Medicare (1.45%): " + currencyFormat.format(result.medicareTax));
+            stateTaxLabel.setText("State Tax (" + formatPercent(PayrollCalculator.STATE_TAX_RATE) + "): " + currencyFormat.format(result.stateTax));
+            federalTaxLabel.setText("Federal Tax (" + formatPercent(PayrollCalculator.FEDERAL_TAX_RATE) + "): " + currencyFormat.format(result.federalTax));
+            socialSecurityLabel.setText("Social Security (" + formatPercent(PayrollCalculator.SOCIAL_SECURITY_RATE) + "): " + currencyFormat.format(result.socialSecurityTax));
+            medicareLabel.setText("Medicare (" + formatPercent(PayrollCalculator.MEDICARE_RATE) + "): " + currencyFormat.format(result.medicareTax));
             medicalDeductionLabel.setText("Medical Deduction: " + currencyFormat.format(result.medicalDeduction));
             dependentStipendLabel.setText("Dependent Stipend: " + currencyFormat.format(result.dependentStipend));
 
@@ -239,7 +242,7 @@ public class TimeEntryView extends VBox {
             );
 
             // Save to database
-            boolean success = grant.coburn.dao.TimeEntryDAO.shared().saveTimeEntry(entry);
+            boolean success = grant.coburn.dao.TimeEntryDAO.shared.saveTimeEntry(entry);
             
             if (success) {
                 showSuccess("Time entry saved successfully!");

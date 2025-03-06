@@ -211,10 +211,9 @@ public class TimeEntryEditView extends VBox {
             overtimeHoursLabel.setText(String.format("Overtime Hours: %.1f", entry.getOvertimeHours()));
 
             // Calculate payroll
-            PayrollResult result = PayrollCalculator.calculatePayroll(
+            PayrollResult result = PayrollCalculator.calculatePayrollPreview(
                 employee,
-                java.util.Arrays.asList(entry),
-                employee.getBaseSalary()  // Use base salary directly as hourly rate
+                java.util.Arrays.asList(entry)
             );
 
             // Update financial displays
@@ -240,7 +239,7 @@ public class TimeEntryEditView extends VBox {
             timeEntry.setPto(ptoCheckBox.isSelected());
 
             // Update in database
-            boolean success = grant.coburn.dao.TimeEntryDAO.shared().updateTimeEntry(timeEntry);
+            boolean success = grant.coburn.dao.TimeEntryDAO.shared.updateTimeEntry(timeEntry);
             
             if (success) {
                 if (onSave != null) {

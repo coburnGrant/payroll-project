@@ -5,9 +5,9 @@ import java.util.Locale;
 
 import grant.coburn.dao.EmployeeDAO;
 import grant.coburn.model.Employee;
-import grant.coburn.view.EmployeeFormView;
 import grant.coburn.view.TimeSheetView;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.scene.control.Alert;
@@ -191,7 +191,7 @@ public class EmployeeManagementView extends BorderPane {
     }
 
     private void loadEmployees() {
-        ObservableList<Employee> employees = employeeDAO.getAllEmployees();
+        ObservableList<Employee> employees = FXCollections.observableArrayList(employeeDAO.getAllEmployees());
         employeeTable.setItems(employees);
     }
 

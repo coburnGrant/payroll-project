@@ -159,7 +159,7 @@ public class TimeSheetView extends BorderPane {
 
     private void loadTimeEntries() {
         timeEntryTable.getItems().clear();
-        timeEntryTable.getItems().addAll(TimeEntryDAO.shared().getTimeEntriesByEmployeeId(employee.getEmployeeId()));
+        timeEntryTable.getItems().addAll(TimeEntryDAO.shared.getTimeEntriesByEmployeeId(employee.getEmployeeId()));
     }
 
     private void handleEdit() {
@@ -190,7 +190,7 @@ public class TimeSheetView extends BorderPane {
             
             confirmDialog.showAndWait().ifPresent(response -> {
                 if (response == javafx.scene.control.ButtonType.OK) {
-                    boolean success = TimeEntryDAO.shared().deleteTimeEntry(selectedEntry);
+                    boolean success = TimeEntryDAO.shared.deleteTimeEntry(selectedEntry);
                     if (success) {
                         loadTimeEntries();
                         showSuccess("Time entry deleted successfully!");

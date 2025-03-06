@@ -26,7 +26,7 @@ public class TimeSheetView {
     public TimeSheetView(Stage stage, Employee employee, Runnable onBack) {
         this.stage = stage;
         this.employee = employee;
-        this.timeEntryDAO = TimeEntryDAO.shared();
+        this.timeEntryDAO = TimeEntryDAO.shared;
         this.onBack = onBack;
         this.timeEntryTable = createTimeEntryTable();
         setupUI();

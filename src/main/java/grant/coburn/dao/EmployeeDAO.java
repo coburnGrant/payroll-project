@@ -5,12 +5,12 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 import grant.coburn.model.Employee;
 import grant.coburn.model.User;
 import grant.coburn.util.DatabaseUtil;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 
 public class EmployeeDAO {
     public class EmployeeCredentials {
@@ -33,21 +33,50 @@ public class EmployeeDAO {
         this.dbUtil = dbUtil;
     }
 
-    public ObservableList<Employee> getAllEmployees() {
-        ObservableList<Employee> employees = FXCollections.observableArrayList();
-        String sql = "SELECT * FROM employees";
-
+    /**
+     * Get all active employees.
+     * @return List of all employees
+     */
+    public List<Employee> getAllEmployees() {
+        List<Employee> employees = new ArrayList<>();
+        String sql = "SELECT * FROM employees WHERE status = 'ACTIVE'";
+        
         try (Connection conn = dbUtil.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
-
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            
             while (rs.next()) {
                 employees.add(createEmployeeFromResultSet(rs));
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        
         return employees;
+    }
+
+    /**
+     * Get an employee by their ID.
+     * @param employeeId The ID of the employee to retrieve
+     * @return The employee if found, null otherwise
+     */
+    public Employee getEmployeeById(String employeeId) {
+        String sql = "SELECT * FROM employees WHERE employee_id = ? AND status = 'ACTIVE'";
+        
+        try (Connection conn = dbUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, employeeId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return createEmployeeFromResultSet(rs);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return null;
     }
 
     public Employee getEmployee(String employeeId) {

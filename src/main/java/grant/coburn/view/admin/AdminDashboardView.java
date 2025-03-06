@@ -75,8 +75,16 @@ public class AdminDashboardView extends VBox {
     }
 
     private void handlePayroll() {
-        // TODO: Implement payroll processing
-        System.out.println("Payroll processing clicked");
+        PayrollProcessingView payrollView = new PayrollProcessingView(stage);
+        payrollView.setOnBack(() -> {
+            stage.setTitle("Payroll System - Admin Dashboard");
+            stage.getScene().setRoot(this);
+        });
+        
+        stage.setTitle("Payroll System - Payroll Processing");
+        stage.getScene().setRoot(payrollView);
+        stage.setWidth(800);
+        stage.setHeight(600);
     }
 
     private void handleReports() {

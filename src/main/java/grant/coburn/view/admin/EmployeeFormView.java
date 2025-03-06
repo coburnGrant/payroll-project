@@ -1,4 +1,4 @@
-package grant.coburn.view;
+package grant.coburn.view.admin;
 
 import java.util.function.Consumer;
 

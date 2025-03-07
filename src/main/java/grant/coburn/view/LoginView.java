@@ -7,12 +7,10 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
@@ -39,20 +37,27 @@ public class LoginView extends VBox {
 
     private void setupUI() {
         this.setAlignment(Pos.CENTER);
-        this.setPadding(new Insets(20));
-        this.setSpacing(20);
+        this.setPadding(new Insets(40));
+        this.setSpacing(30);
+        this.getStyleClass().add("card");
 
-        Text title = new Text("Payroll System Login");
-        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+        // Title section
+        VBox titleBox = new VBox(10);
+        titleBox.setAlignment(Pos.CENTER);
+        Text title = new Text("Welcome Back");
+        title.getStyleClass().add("title");
+        Text subtitle = new Text("Sign in to access your account");
+        subtitle.getStyleClass().add("subtitle");
+        titleBox.getChildren().addAll(title, subtitle);
 
-        GridPane grid = new GridPane();
-        grid.setAlignment(Pos.CENTER);
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20));
+        // Form section
+        VBox formBox = new VBox(20);
+        formBox.setAlignment(Pos.CENTER);
+        formBox.setMaxWidth(300);
 
         // User Type Radio Buttons
-        Label userTypeLabel = new Label("User Type:");
+        HBox radioBox = new HBox(20);
+        radioBox.setAlignment(Pos.CENTER);
         ToggleGroup userTypeGroup = new ToggleGroup();
         
         adminRadio = new RadioButton("Admin");
@@ -60,18 +65,18 @@ public class LoginView extends VBox {
         
         employeeRadio = new RadioButton("Employee");
         employeeRadio.setToggleGroup(userTypeGroup);
-        employeeRadio.setSelected(true); // Default selection
+        employeeRadio.setSelected(true);
         
-        HBox radioBox = new HBox(10);
         radioBox.getChildren().addAll(adminRadio, employeeRadio);
 
-        Label userIdLabel = new Label("User ID:");
+        // Input fields
         userIdField = new TextField();
         userIdField.setPromptText("Enter your user ID");
+        userIdField.getStyleClass().add("text-field");
 
-        Label passwordLabel = new Label("Password:");
         passwordField = new PasswordField();
         passwordField.setPromptText("Enter your password");
+        passwordField.getStyleClass().add("text-field");
         passwordField.setOnKeyPressed(event -> {
             if (event.getCode() == javafx.scene.input.KeyCode.ENTER && 
                 !userIdField.getText().isEmpty() && 
@@ -80,19 +85,31 @@ public class LoginView extends VBox {
             }
         });
 
-        Button loginButton = new Button("Login");
+        // Buttons
+        Button loginButton = new Button("Sign In");
+        loginButton.setMaxWidth(Double.MAX_VALUE);
         loginButton.setOnAction(e -> handleLogin());
 
-        // Add components to grid
-        grid.add(userTypeLabel, 0, 0);
-        grid.add(radioBox, 1, 0);
-        grid.add(userIdLabel, 0, 1);
-        grid.add(userIdField, 1, 1);
-        grid.add(passwordLabel, 0, 2);
-        grid.add(passwordField, 1, 2);
-        grid.add(loginButton, 1, 3);
+        Button createAccountButton = new Button("Create Account");
+        createAccountButton.getStyleClass().add("button-secondary");
+        createAccountButton.setMaxWidth(Double.MAX_VALUE);
+        createAccountButton.setOnAction(e -> {
+            if (onCreateAccountClick != null) {
+                onCreateAccountClick.run();
+            }
+        });
 
-        this.getChildren().addAll(title, grid, loginButton);
+        // Add all components to the form
+        formBox.getChildren().addAll(
+            radioBox,
+            userIdField,
+            passwordField,
+            loginButton,
+            createAccountButton
+        );
+
+        // Add everything to the main container
+        this.getChildren().addAll(titleBox, formBox);
     }
 
     private void handleLogin() {
@@ -101,22 +118,13 @@ public class LoginView extends VBox {
             String password = passwordField.getText();
 
             if (userId.isEmpty() || password.isEmpty()) {
-                showError("Please enter both user ID and password");
+                showError("Please fill in all fields");
                 return;
             }
 
-            // Verify user type matches selection
             User user = onLogin.apply(userId, password);
             if (user == null) {
                 showError("Invalid credentials");
-            } else {
-                boolean isAdmin = user.getUserType() == User.UserType.ADMIN;
-
-                if ((isAdmin && !adminRadio.isSelected()) || (!isAdmin && !employeeRadio.isSelected())) {
-                    showError("Selected user type does not match account type");
-                }
-                
-                // Login successful - handled by callback
             }
         }
     }

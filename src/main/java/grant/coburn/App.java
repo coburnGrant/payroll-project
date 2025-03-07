@@ -20,8 +20,8 @@ public class App extends Application {
     private static Scene scene;
     private Stage primaryStage;
     private BorderPane rootLayout;
-
     private UserDAO userDAO;
+    private static final String CSS_FILE = "/styles/global.css";
 
     @Override
     public void start(Stage stage) throws IOException {
@@ -31,12 +31,18 @@ public class App extends Application {
         showLoginView();
     }
 
+    private Scene createScene(javafx.scene.Parent root, double width, double height) {
+        Scene scene = new Scene(root, width, height);
+        scene.getStylesheets().add(getClass().getResource(CSS_FILE).toExternalForm());
+        return scene;
+    }
+
     private void showLoginView() {
         LoginView loginView = new LoginView();
         loginView.setOnLogin(this::handleLogin);
         loginView.setOnCreateAccountClick(this::showCreateAccountView);
 
-        Scene loginScene = new Scene(loginView, 400, 300);
+        Scene loginScene = createScene(loginView, 400, 300);
         primaryStage.setTitle("Payroll System - Login");
         primaryStage.setScene(loginScene);
         primaryStage.show();
@@ -61,7 +67,7 @@ public class App extends Application {
         CreateAccountView createAccountView = new CreateAccountView();
         createAccountView.setOnCreateAccount(this::handleCreateAccount);
         createAccountView.setOnBackToLogin(this::showLoginView);
-        Scene createAccountScene = new Scene(createAccountView, 400, 400);
+        Scene createAccountScene = createScene(createAccountView, 400, 400);
         primaryStage.setTitle("Payroll System - Create Account");
         primaryStage.setScene(createAccountScene);
     }
@@ -94,7 +100,7 @@ public class App extends Application {
     private void showAdminDashboard(User user) {
         AdminDashboardView dashboard = new AdminDashboardView(user, primaryStage);
         dashboard.setOnLogout(this::showLoginView);
-        Scene dashboardScene = new Scene(dashboard, 600, 400);
+        Scene dashboardScene = createScene(dashboard, 600, 400);
         primaryStage.setTitle("Payroll System - Admin Dashboard");
         primaryStage.setScene(dashboardScene);
     }
@@ -102,7 +108,7 @@ public class App extends Application {
     private void showEmployeeDashboard(User user, Employee employeeData) {
         EmployeeDashboardView dashboard = new EmployeeDashboardView(user, employeeData, primaryStage);
         dashboard.setOnLogout(this::showLoginView);
-        Scene dashboardScene = new Scene(dashboard, 600, 400);
+        Scene dashboardScene = createScene(dashboard, 600, 400);
         primaryStage.setTitle("Payroll System - Employee Dashboard");
         primaryStage.setScene(dashboardScene);
     }
@@ -113,7 +119,7 @@ public class App extends Application {
         if (!isForced) {
             changePasswordView.setOnBack(() -> showDashboard(user));
         }
-        Scene changePasswordScene = new Scene(changePasswordView, 400, 300);
+        Scene changePasswordScene = createScene(changePasswordView, 400, 300);
         primaryStage.setTitle("Payroll System - Change Password");
         primaryStage.setScene(changePasswordScene);
     }

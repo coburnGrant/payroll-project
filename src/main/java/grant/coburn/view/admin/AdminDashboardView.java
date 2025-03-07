@@ -3,10 +3,14 @@ package grant.coburn.view.admin;
 import grant.coburn.model.User;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 public class AdminDashboardView extends VBox {
@@ -26,70 +30,116 @@ public class AdminDashboardView extends VBox {
 
     private void setupUI() {
         this.setAlignment(Pos.TOP_CENTER);
-        this.setPadding(new Insets(20));
-        this.setSpacing(20);
+        this.setPadding(new Insets(40));
+        this.setSpacing(40);
+        this.setStyle("-fx-background-color: -fx-grey-100;");
 
+        // Header section with welcome message and logout
+        HBox header = new HBox(20);
+        header.setAlignment(Pos.CENTER_LEFT);
+        
+        VBox welcomeBox = new VBox(5);
         Text title = new Text("Admin Dashboard");
-        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
-
-        Label welcomeLabel = new Label("Welcome, " + user.getUserId());
-        welcomeLabel.setStyle("-fx-font-size: 16px;");
-
-        Button employeeMgmtButton = new Button("Manage Employees");
-        Button payrollButton = new Button("Process Payroll");
-        Button reportsButton = new Button("Generate Reports");
+        title.getStyleClass().add("title");
+        Label welcomeLabel = new Label("Welcome back, " + user.getUserId());
+        welcomeLabel.getStyleClass().add("subtitle");
+        welcomeBox.getChildren().addAll(title, welcomeLabel);
+        
         Button logoutButton = new Button("Logout");
-
-        employeeMgmtButton.setOnAction(e -> showEmployeeManagement());
-        payrollButton.setOnAction(e -> handlePayroll());
-        reportsButton.setOnAction(e -> handleReports());
+        logoutButton.getStyleClass().addAll("button-secondary", "button-danger");
         logoutButton.setOnAction(e -> handleLogout());
+        
+        HBox.setHgrow(welcomeBox, Priority.ALWAYS);
+        header.getChildren().addAll(welcomeBox, logoutButton);
 
-        // Make buttons wider
-        employeeMgmtButton.setPrefWidth(200);
-        payrollButton.setPrefWidth(200);
-        reportsButton.setPrefWidth(200);
-        logoutButton.setPrefWidth(200);
+        // Main content with action cards
+        HBox mainContent = new HBox(20);
+        mainContent.setAlignment(Pos.CENTER);
 
-        this.getChildren().addAll(
-            title,
-            welcomeLabel,
-            employeeMgmtButton,
-            payrollButton,
-            reportsButton,
-            logoutButton
+        // Employee Management Card
+        VBox employeeMgmtCard = createActionCard(
+            "Manage Employees",
+            "Add, edit, or remove employee records",
+            "button-primary",
+            e -> showEmployeeManagement()
         );
+
+        // Payroll Processing Card
+        VBox payrollCard = createActionCard(
+            "Process Payroll",
+            "Calculate and process employee payroll",
+            "button-primary",
+            e -> handlePayroll()
+        );
+
+        // Reports Card
+        VBox reportsCard = createActionCard(
+            "Generate Reports",
+            "Create and export payroll reports",
+            "button-primary",
+            e -> handleReports()
+        );
+
+        mainContent.getChildren().addAll(employeeMgmtCard, payrollCard, reportsCard);
+
+        this.getChildren().addAll(header, mainContent);
+    }
+
+    private VBox createActionCard(String title, String description, String buttonStyle, javafx.event.EventHandler<javafx.event.ActionEvent> action) {
+        VBox card = new VBox(15);
+        card.getStyleClass().add("card");
+        card.setPadding(new Insets(20));
+        card.setAlignment(Pos.CENTER);
+        card.setPrefWidth(250);
+        card.setMinHeight(200);
+
+        Text titleText = new Text(title);
+        titleText.getStyleClass().add("subtitle");
+        titleText.setStyle("-fx-font-weight: bold;");
+
+        Text descText = new Text(description);
+        descText.setStyle("-fx-text-alignment: center; -fx-fill: -fx-grey-700;");
+        descText.setWrappingWidth(200);
+
+        Button actionButton = new Button(title);
+        actionButton.getStyleClass().add(buttonStyle);
+        actionButton.setMaxWidth(Double.MAX_VALUE);
+        actionButton.setOnAction(action);
+
+        card.getChildren().addAll(titleText, descText, actionButton);
+        return card;
     }
 
     private void showEmployeeManagement() {
-        EmployeeManagementView empView = new EmployeeManagementView(stage);
-        empView.setOnBack(() -> {
-            stage.setTitle("Payroll System - Admin Dashboard");
-            stage.getScene().setRoot(this);
+        EmployeeManagementView employeeManagement = new EmployeeManagementView(stage);
+        employeeManagement.setOnBack(() -> {
+            stage.setScene(stage.getScene());
         });
-        
-        stage.setTitle("Payroll System - Employee Management");
-        stage.getScene().setRoot(empView);
-        stage.setWidth(800);
-        stage.setHeight(600);
+        Scene scene = new Scene(employeeManagement, 800, 600);
+        scene.getStylesheets().addAll(stage.getScene().getStylesheets());
+        stage.setScene(scene);
     }
 
     private void handlePayroll() {
         PayrollProcessingView payrollView = new PayrollProcessingView(stage);
         payrollView.setOnBack(() -> {
-            stage.setTitle("Payroll System - Admin Dashboard");
-            stage.getScene().setRoot(this);
+            stage.setScene(stage.getScene());
         });
-        
-        stage.setTitle("Payroll System - Payroll Processing");
-        stage.getScene().setRoot(payrollView);
-        stage.setWidth(800);
-        stage.setHeight(600);
+        Scene scene = new Scene(payrollView, 800, 600);
+        scene.getStylesheets().addAll(stage.getScene().getStylesheets());
+        stage.setScene(scene);
     }
 
     private void handleReports() {
-        // TODO: Implement reports generation
-        System.out.println("Reports clicked");
+        GenerateReportView reportView = new GenerateReportView();
+        Scene scene = new Scene(reportView, 600, 400);
+        scene.getStylesheets().addAll(stage.getScene().getStylesheets());
+        Stage reportStage = new Stage();
+        reportStage.initModality(Modality.APPLICATION_MODAL);
+        reportStage.initOwner(stage);
+        reportStage.setTitle("Generate Reports");
+        reportStage.setScene(scene);
+        reportStage.showAndWait();
     }
 
     private void handleLogout() {

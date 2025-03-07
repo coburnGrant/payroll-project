@@ -28,6 +28,10 @@ public class PayrollCalculator {
         public double medicalDeduction;
         public double dependentStipend;
         public double netPay;
+
+        public void accept(PayrollResultVisitor visitor) {
+            visitor.visit(this);
+        }
     }
 
     /**
@@ -63,29 +67,28 @@ public class PayrollCalculator {
                 }
             }
             
-            // Calculate regular pay for first 40 hours
-            result.regularPay = Math.min(weeklyRegularHours, 40.0) * payRate;
+            // Calculate regular pay for first 40 hours plus PTO
+            double regularHoursPay = Math.min(weeklyRegularHours, 40.0) * payRate;
+            double ptoPay = ptoHours * payRate;
+            result.regularPay = regularHoursPay + ptoPay;
             
             // Calculate overtime for hours over 40
             if (weeklyRegularHours > 40.0) {
                 result.overtimePay = (weeklyRegularHours - 40.0) * (payRate * 1.5);
             }
-            
-            // Add PTO hours at regular rate
-            result.regularPay += ptoHours * payRate;
         }
 
         result.grossPay = result.regularPay + result.overtimePay;
 
-        // Calculate deductions
-        result.stateTax = Math.round(result.grossPay * STATE_TAX_RATE * 100.0) / 100.0;
-        result.federalTax = Math.round(result.grossPay * FEDERAL_TAX_RATE * 100.0) / 100.0;
-        result.socialSecurityTax = Math.round(result.grossPay * SOCIAL_SECURITY_RATE * 100.0) / 100.0;
-        result.medicareTax = Math.round(result.grossPay * MEDICARE_RATE * 100.0) / 100.0;
+        // Calculate deductions - same for both hourly and salaried
+        result.stateTax = result.grossPay * STATE_TAX_RATE;
+        result.federalTax = result.grossPay * FEDERAL_TAX_RATE;
+        result.socialSecurityTax = result.grossPay * SOCIAL_SECURITY_RATE;
+        result.medicareTax = result.grossPay * MEDICARE_RATE;
         
         // Employer portions
-        result.employerSocialSecurityTax = Math.round(result.grossPay * SOCIAL_SECURITY_RATE * 100.0) / 100.0;
-        result.employerMedicareTax = Math.round(result.grossPay * MEDICARE_RATE * 100.0) / 100.0;
+        result.employerSocialSecurityTax = result.grossPay * SOCIAL_SECURITY_RATE;
+        result.employerMedicareTax = result.grossPay * MEDICARE_RATE;
 
         // Medical and dependents
         result.medicalDeduction = (employee.getPayType() == Employee.PayType.SALARY) ? 
@@ -93,13 +96,16 @@ public class PayrollCalculator {
         result.dependentStipend = employee.getDependentsCount() * DEPENDENT_STIPEND;
 
         // Calculate net pay
-        result.netPay = Math.round((result.grossPay 
+        result.netPay = result.grossPay 
             - result.stateTax 
             - result.federalTax 
             - result.socialSecurityTax 
             - result.medicareTax 
             - result.medicalDeduction 
-            + result.dependentStipend) * 100.0) / 100.0;
+            + result.dependentStipend;
+
+        // Round all monetary values using visitor
+        result.accept(new MonetaryRoundingVisitor());
 
         return result;
     }
@@ -162,13 +168,16 @@ public class PayrollCalculator {
         result.dependentStipend = employee.getDependentsCount() * DEPENDENT_STIPEND;
 
         // Calculate net pay
-        result.netPay = Math.round((result.grossPay 
+        result.netPay = result.grossPay 
             - result.stateTax 
             - result.federalTax 
             - result.socialSecurityTax 
             - result.medicareTax 
             - result.medicalDeduction 
-            + result.dependentStipend) * 100.0) / 100.0;
+            + result.dependentStipend;
+
+        // Round all monetary values using visitor
+        result.accept(new MonetaryRoundingVisitor());
 
         return result;
     }

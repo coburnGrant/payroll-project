@@ -225,4 +225,50 @@ class PayrollCalculatorTest {
         assertEquals(0.0, result.overtimePay, 0.01);
         assertEquals(sevenDayPay, result.grossPay, 0.01);
     }
+
+    @Test
+    void testHourlyEmployeeDeductions() {
+        // Create time entries for regular hours (40 hours)
+        List<TimeEntry> timeEntries = Arrays.asList(
+            new TimeEntry(hourlyEmployee.getEmployeeId(), payPeriodStart, 8.0, false),
+            new TimeEntry(hourlyEmployee.getEmployeeId(), payPeriodStart.plusDays(1), 8.0, false),
+            new TimeEntry(hourlyEmployee.getEmployeeId(), payPeriodStart.plusDays(2), 8.0, false),
+            new TimeEntry(hourlyEmployee.getEmployeeId(), payPeriodStart.plusDays(3), 8.0, false),
+            new TimeEntry(hourlyEmployee.getEmployeeId(), payPeriodStart.plusDays(4), 8.0, false)
+        );
+
+        PayrollCalculator.PayrollResult result = PayrollCalculator.calculatePayroll(
+            hourlyEmployee,
+            timeEntries,
+            payPeriodStart,
+            payPeriodEnd
+        );
+
+        // Regular hours: 40 * $25 = $1,000.00
+        double expectedGrossPay = 1000.00;
+        
+        // Verify deductions
+        assertEquals(expectedGrossPay * PayrollCalculator.STATE_TAX_RATE, result.stateTax, 0.01);
+        assertEquals(expectedGrossPay * PayrollCalculator.FEDERAL_TAX_RATE, result.federalTax, 0.01);
+        assertEquals(expectedGrossPay * PayrollCalculator.SOCIAL_SECURITY_RATE, result.socialSecurityTax, 0.01);
+        assertEquals(expectedGrossPay * PayrollCalculator.MEDICARE_RATE, result.medicareTax, 0.01);
+        
+        // Verify employer portions
+        assertEquals(expectedGrossPay * PayrollCalculator.SOCIAL_SECURITY_RATE, result.employerSocialSecurityTax, 0.01);
+        assertEquals(expectedGrossPay * PayrollCalculator.MEDICARE_RATE, result.employerMedicareTax, 0.01);
+        
+        // Verify no medical deduction for hourly employees
+        assertEquals(0.0, result.medicalDeduction, 0.01);
+        
+        // Verify no dependent stipend (employee has 0 dependents)
+        assertEquals(0.0, result.dependentStipend, 0.01);
+        
+        // Verify net pay
+        double expectedNetPay = expectedGrossPay
+            - (expectedGrossPay * PayrollCalculator.STATE_TAX_RATE)
+            - (expectedGrossPay * PayrollCalculator.FEDERAL_TAX_RATE)
+            - (expectedGrossPay * PayrollCalculator.SOCIAL_SECURITY_RATE)
+            - (expectedGrossPay * PayrollCalculator.MEDICARE_RATE);
+        assertEquals(expectedNetPay, result.netPay, 0.01);
+    }
 } 

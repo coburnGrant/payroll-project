@@ -31,175 +31,107 @@ public class PayrollProcessor {
     }
 
     /**
-     * Process payroll for all active employees within the specified date range.
+     * Process payroll for all employees for the given pay period
      * @param startDate The start date of the pay period
      * @param endDate The end date of the pay period
-     * @return true if processing was successful, false otherwise
+     * @return A PayrollProcessingResult containing the results of the operation
      */
-    public boolean processPayroll(LocalDate startDate, LocalDate endDate) {
-        if (startDate == null || endDate == null || startDate.isAfter(endDate)) {
-            return false;
+    public PayrollProcessingResult processPayroll(LocalDate startDate, LocalDate endDate) {
+        PayrollProcessingResult.Builder resultBuilder = new PayrollProcessingResult.Builder();
+
+        if (startDate == null || endDate == null) {
+            return resultBuilder.addError("Start date and end date are required").build();
         }
 
-        // Get all active employees
+        if (endDate.isBefore(startDate)) {
+            return resultBuilder.addError("End date cannot be before start date").build();
+        }
+
         List<Employee> employees = employeeDAO.getAllEmployees();
         if (employees.isEmpty()) {
-            return false;
+            return resultBuilder.addWarning("No employees found to process").build();
         }
 
-        // Process payroll for each employee
+        final int totalEmployees = employees.size();
+        int successfullyProcessed = 0;
+
+        resultBuilder.setEmployeesProcessed(totalEmployees);
+
         for (Employee employee : employees) {
-            if (!processEmployeePayroll(employee, startDate, endDate)) {
-                return false;
+            try {
+                List<TimeEntry> timeEntries = timeEntryDAO.getTimeEntriesByEmployeeIdAndDateRange(
+                    employee.getEmployeeId(), 
+                    startDate, 
+                    endDate
+                );
+
+                PayrollResult payrollResult = PayrollCalculator.calculatePayroll(
+                    employee,
+                    timeEntries,
+                    startDate,
+                    endDate
+                );
+
+                // Save the payroll record
+                PayrollRecord record = new PayrollRecord(
+                    employee.getEmployeeId(),
+                    startDate,
+                    endDate,
+                    payrollResult.grossPay,
+                    payrollResult.netPay,
+                    payrollResult.medicalDeduction,
+                    payrollResult.dependentStipend,
+                    payrollResult.stateTax,
+                    payrollResult.federalTax,
+                    payrollResult.socialSecurityTax,
+                    payrollResult.medicareTax,
+                    payrollResult.employerSocialSecurityTax,
+                    payrollResult.employerMedicareTax
+                );
+
+                payrollRecordDAO.savePayrollRecord(record);
+
+                // Lock all time entries for the employee for the pay period
+                lockTimeEntries(timeEntries);
+
+                successfullyProcessed++;
+            } catch (IllegalStateException e) {
+                // Validation errors from PayrollCalculator
+                resultBuilder.addError(String.format(
+                    "Error processing employee %s (%s): %s",
+                    employee.getFullName(),
+                    employee.getEmployeeId(),
+                    e.getMessage()
+                ));
+                resultBuilder.incrementEmployeesWithErrors();
+            } catch (Exception e) {
+                // Unexpected errors
+                resultBuilder.addError(String.format(
+                    "Unexpected error processing employee %s (%s): %s",
+                    employee.getFullName(),
+                    employee.getEmployeeId(),
+                    e.getMessage()
+                ));
+                resultBuilder.incrementEmployeesWithErrors();
             }
         }
 
-        return true;
-    }
-
-    /**
-     * Process payroll for a single employee within the specified date range.
-     * @param employee The employee to process payroll for
-     * @param startDate The start date of the pay period
-     * @param endDate The end date of the pay period
-     * @return true if processing was successful, false otherwise
-     */
-    private boolean processEmployeePayroll(Employee employee, LocalDate startDate, LocalDate endDate) {
-        // Get time entries for the pay period that are not locked
-        List<TimeEntry> timeEntries = timeEntryDAO.getTimeEntriesByEmployeeIdAndDateRange(
-            employee.getEmployeeId(), 
-            startDate, 
-            endDate
-        );
-
-        if (employee.getPayType() == Employee.PayType.SALARY) {
-            return processSalariedEmployeePayroll(employee, timeEntries, startDate, endDate);
-        } else {
-            return processHourlyEmployeePayroll(employee, timeEntries, startDate, endDate);
-        }
-    }
-
-    /**
-     * Process payroll for a salaried employee.
-     * @param employee The salaried employee
-     * @param timeEntries List of time entries (only used for PTO)
-     * @param startDate The start date of the pay period
-     * @param endDate The end date of the pay period
-     * @return true if processing was successful, false otherwise
-     */
-    private boolean processSalariedEmployeePayroll(
-        Employee employee, 
-        List<TimeEntry> timeEntries, 
-        LocalDate startDate,
-        LocalDate endDate
-    ) {
-        // Calculate payroll with salary (time entries only used for PTO deductions)
-        PayrollResult result = PayrollCalculator.calculatePayroll(
-            employee,
-            timeEntries,
-            startDate,
-            endDate
-        );
-
-        // Create and save payroll record
-        PayrollRecord record = createPayrollRecord(employee, startDate, endDate, result);
-
-        if (!payrollRecordDAO.savePayrollRecord(record)) {
-            return false;
+        if (successfullyProcessed < totalEmployees) {
+            resultBuilder.addWarning(String.format(
+                "Completed with errors: %d of %d employees processed successfully",
+                successfullyProcessed,
+                totalEmployees
+            ));
         }
 
-        // Lock only PTO entries
-        return lockPTOEntries(timeEntries);
+        return resultBuilder.build();
     }
 
-    /**
-     * Process payroll for an hourly employee.
-     * @param employee The hourly employee
-     * @param timeEntries List of time entries
-     * @param startDate The start date of the pay period
-     * @param endDate The end date of the pay period
-     * @return true if processing was successful, false otherwise
-     */
-    private boolean processHourlyEmployeePayroll(
-        Employee employee,
-        List<TimeEntry> timeEntries,
-        LocalDate startDate,
-        LocalDate endDate
-    ) {
-        // Calculate payroll with time entries (will be zero if no entries)
-        PayrollResult result = PayrollCalculator.calculatePayroll(
-            employee,
-            timeEntries,
-            startDate,
-            endDate
-        );
-
-        // Create and save payroll record
-        PayrollRecord record = createPayrollRecord(employee, startDate, endDate, result);
-        if (!payrollRecordDAO.savePayrollRecord(record)) {
-            return false;
+    private  void lockTimeEntries(List<TimeEntry> timeEntries) {
+        for (TimeEntry timeEntry : timeEntries) {
+            timeEntry.setLocked(true);
+            timeEntryDAO.updateTimeEntry(timeEntry);
         }
-
-        // Lock all time entries (if any exist)
-        if (!timeEntries.isEmpty()) {
-            return lockAllTimeEntries(timeEntries);
-        }
-
-        return true;
-    }
-
-    /**
-     * Create a payroll record from the calculation result.
-     */
-    private PayrollRecord createPayrollRecord(
-        Employee employee,
-        LocalDate startDate,
-        LocalDate endDate,
-        PayrollResult result
-    ) {
-        return new PayrollRecord(
-            employee.getEmployeeId(),
-            startDate,
-            endDate,
-            result.grossPay,
-            result.netPay,
-            result.medicalDeduction,
-            result.dependentStipend,
-            result.stateTax,
-            result.federalTax,
-            result.socialSecurityTax,
-            result.medicareTax,
-            result.employerSocialSecurityTax,
-            result.employerMedicareTax
-        );
-    }
-
-    /**
-     * Lock all PTO time entries.
-     */
-    private boolean lockPTOEntries(List<TimeEntry> timeEntries) {
-        for (TimeEntry entry : timeEntries) {
-            if (entry.isPto()) {
-                entry.setLocked(true);
-                if (!timeEntryDAO.updateTimeEntry(entry)) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Lock all time entries.
-     */
-    private boolean lockAllTimeEntries(List<TimeEntry> timeEntries) {
-        for (TimeEntry entry : timeEntries) {
-            entry.setLocked(true);
-            if (!timeEntryDAO.updateTimeEntry(entry)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**

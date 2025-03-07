@@ -7,6 +7,7 @@ import java.util.Locale;
 
 import grant.coburn.model.Employee;
 import grant.coburn.model.PayrollRecord;
+import grant.coburn.util.PayrollProcessingResult;
 import grant.coburn.util.PayrollProcessor;
 import grant.coburn.view.PaycheckView;
 import javafx.geometry.Insets;
@@ -210,14 +211,34 @@ public class PayrollProcessingView extends VBox {
         }
 
         // Process payroll using the PayrollProcessor
-        boolean success = PayrollProcessor.shared().processPayroll(startDate, endDate);
+        PayrollProcessingResult result = PayrollProcessor.shared().processPayroll(startDate, endDate);
         
-        if (success) {
-            // Refresh table
-            refreshPayrollTable();
-            showSuccess("Payroll processed successfully!");
+        if (result.isSuccess()) {
+            showSuccessDialog(
+                String.format("Successfully processed payroll for %d employees", 
+                result.getEmployeesProcessed())
+            );
         } else {
-            showError("Failed to process payroll. Please check your data and try again.");
+            StringBuilder message = new StringBuilder("Payroll processing failed:\n\n");
+            
+            // Add errors
+            if (result.hasErrors()) {
+                message.append("Errors:\n");
+                for (String error : result.getErrors()) {
+                    message.append("- ").append(error).append("\n");
+                }
+                message.append("\n");
+            }
+            
+            // Add warnings
+            if (result.hasWarnings()) {
+                message.append("Warnings:\n");
+                for (String warning : result.getWarnings()) {
+                    message.append("- ").append(warning).append("\n");
+                }
+            }
+            
+            showErrorDialog(message.toString());
         }
     }
 
@@ -243,6 +264,22 @@ public class PayrollProcessingView extends VBox {
     private void showSuccess(String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Success");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    private void showSuccessDialog(String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Success");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    private void showErrorDialog(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();

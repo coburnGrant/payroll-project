@@ -71,7 +71,7 @@ public class TimeEntryDAO {
 
     public boolean updateTimeEntry(TimeEntry entry) {
         String sql = "UPDATE time_entries SET work_date = ?, hours_worked = ?, is_pto = ? " +
-                    "WHERE entry_id = ? AND employee_id = ? AND is_locked = FALSE";
+                    "WHERE entry_id = ? AND employee_id = ? AND is_locked = ?";
 
         try (Connection conn = dbUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -81,6 +81,7 @@ public class TimeEntryDAO {
             stmt.setBoolean(3, entry.isPto());
             stmt.setLong(4, entry.getEntryId());
             stmt.setString(5, entry.getEmployeeId());
+            stmt.setBoolean(6, entry.isLocked());
 
             int rowsAffected = stmt.executeUpdate();
             return rowsAffected > 0;

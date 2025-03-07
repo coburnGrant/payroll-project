@@ -100,4 +100,8 @@ public class PayrollRecord {
     
     public LocalDateTime getCreationDate() { return creationDate; }
     public void setCreationDate(LocalDateTime creationDate) { this.creationDate = creationDate; }
+
+    public double getTotalDeductions() {
+        return stateTax + federalTax + socialSecurityTax + medicareTax + medicalDeduction + dependentStipend;
+    }
 } 

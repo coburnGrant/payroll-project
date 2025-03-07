@@ -39,8 +39,7 @@ public class PaycheckView extends VBox {
         employeeInfo.getChildren().addAll(
             new Text("Employee: " + employee.getFullName()),
             new Text("Employee ID: " + employee.getEmployeeId()),
-            new Text("Pay Period: " + record.getPayPeriodStart().format(DateTimeFormatter.ofPattern("MM/dd/yyyy")) + 
-                    " - " + record.getPayPeriodEnd().format(DateTimeFormatter.ofPattern("MM/dd/yyyy")))
+            new Text("Pay Period: " + record.getPayPeriodStart().format(DateTimeFormatter.ofPattern("MM/dd/yyyy")) + " - " + record.getPayPeriodEnd().format(DateTimeFormatter.ofPattern("MM/dd/yyyy")))
         );
 
         // Earnings
@@ -48,44 +47,39 @@ public class PaycheckView extends VBox {
         earnings.setAlignment(Pos.CENTER_LEFT);
         
         if (employee.getPayType() == Employee.PayType.SALARY) {
-            // Calculate biweekly salary (annual salary / 26 pay periods)
-            double biweeklySalary = employee.getBaseSalary() / 26;
             earnings.getChildren().addAll(
                 new Text("Earnings:"),
-                new Text(String.format(Locale.US, "Regular Pay: $%,.2f/year ÷ 26 pay periods = $%,.2f", 
-                    employee.getBaseSalary(), biweeklySalary)),
-                new Text(String.format(Locale.US, "Overtime Pay: $%,.2f", record.getOvertimePay())),
-                new Text(String.format(Locale.US, "Gross Pay: $%,.2f", record.getGrossPay()))
+                new Text(formatSimpleLine("Regular Pay", record.getGrossPay() - record.getOvertimePay())),
+                new Text(formatSimpleLine("Overtime Pay", record.getOvertimePay())),
+                new Text(formatSimpleLine("Gross Pay", record.getGrossPay()))
             );
         } else {
             // Calculate hours worked from gross pay and hourly rate
             double hoursWorked = (record.getGrossPay() - record.getOvertimePay()) / employee.getBaseSalary();
             earnings.getChildren().addAll(
                 new Text("Earnings:"),
-                new Text(String.format(Locale.US, "Regular Pay: $%,.2f/hr × %.1f hrs = $%,.2f", 
-                    employee.getBaseSalary(), hoursWorked, record.getGrossPay() - record.getOvertimePay())),
-                new Text(String.format(Locale.US, "Overtime Pay: $%,.2f", record.getOvertimePay())),
-                new Text(String.format(Locale.US, "Gross Pay: $%,.2f", record.getGrossPay()))
+                new Text(String.format(
+                    "Regular Pay: %s/hr × %.1f hrs = %s", 
+                    formatMoney(employee.getBaseSalary()), hoursWorked, 
+                    formatMoney(record.getGrossPay() - record.getOvertimePay()
+                ))),
+                new Text(formatSimpleLine("Overtime Pay", record.getOvertimePay())),
+                new Text(formatSimpleLine("Gross Pay", record.getGrossPay()))
             );
         }
 
         // Deductions
         VBox deductions = new VBox(5);
         deductions.setAlignment(Pos.CENTER_LEFT);
+
         deductions.getChildren().addAll(
             new Text("Deductions:"),
-            new Text(String.format(Locale.US, "State Tax (%.2f%%): $%,.2f", 
-                PayrollCalculator.STATE_TAX_RATE * 100, record.getStateTax())),
-            new Text(String.format(Locale.US, "Federal Tax (%.2f%%): $%,.2f", 
-                PayrollCalculator.FEDERAL_TAX_RATE * 100, record.getFederalTax())),
-            new Text(String.format(Locale.US, "Social Security (%.2f%%): $%,.2f", 
-                PayrollCalculator.SOCIAL_SECURITY_RATE * 100, record.getSocialSecurityTax())),
-            new Text(String.format(Locale.US, "Medicare (%.2f%%): $%,.2f", 
-                PayrollCalculator.MEDICARE_RATE * 100, record.getMedicareTax())),
-            new Text(String.format(Locale.US, "Medical: $%,.2f", record.getMedicalDeduction())),
-            new Text(String.format(Locale.US, "Total Deductions: $%,.2f", 
-                record.getStateTax() + record.getFederalTax() + record.getSocialSecurityTax() + 
-                record.getMedicareTax() + record.getMedicalDeduction()))
+            new Text(formatDeductionLine("State Tax", PayrollCalculator.STATE_TAX_RATE, record.getStateTax())),
+            new Text(formatDeductionLine("Federal Tax", PayrollCalculator.FEDERAL_TAX_RATE, record.getFederalTax())),
+            new Text(formatDeductionLine("Social Security", PayrollCalculator.SOCIAL_SECURITY_RATE, record.getSocialSecurityTax())),
+            new Text(formatDeductionLine("Medicare", PayrollCalculator.MEDICARE_RATE, record.getMedicareTax())),
+            new Text(formatSimpleLine("Medical", record.getMedicalDeduction())),
+            new Text(formatSimpleLine("Total Deductions", record.getTotalDeductions()))
         );
 
         // Benefits
@@ -93,7 +87,7 @@ public class PaycheckView extends VBox {
         benefits.setAlignment(Pos.CENTER_LEFT);
         benefits.getChildren().addAll(
             new Text("Benefits:"),
-            new Text(String.format(Locale.US, "Dependent Stipend: $%,.2f", record.getDependentStipend()))
+            new Text(formatSimpleLine("Dependent Stipend", record.getDependentStipend()))
         );
 
         // Net Pay
@@ -101,7 +95,7 @@ public class PaycheckView extends VBox {
         netPay.setAlignment(Pos.CENTER_LEFT);
         netPay.getChildren().addAll(
             new Text("Net Pay:"),
-            new Text(String.format(Locale.US, "$%,.2f", record.getNetPay()))
+            new Text(formatMoney(record.getNetPay()))
         );
 
         // Close button
@@ -127,5 +121,21 @@ public class PaycheckView extends VBox {
             netPay,
             closeButton
         );
+    }
+
+    private static String formatMoney(double amount) {
+        return String.format(Locale.US, "$%,.2f", amount);
+    }
+
+    private static String formatPercentage(double rate) {
+        return String.format(Locale.US, "%.2f%%", rate * 100);
+    }
+
+    private static String formatDeductionLine(String label, double rate, double amount) {
+        return String.format("%s (%s): %s", label, formatPercentage(rate), formatMoney(amount));
+    }
+    
+    private static String formatSimpleLine(String label, double amount) {
+        return String.format("%s: %s", label, formatMoney(amount));
     }
 } 

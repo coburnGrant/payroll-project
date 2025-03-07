@@ -1,15 +1,15 @@
 package grant.coburn.view;
 
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
 
 import grant.coburn.model.Employee;
 import grant.coburn.model.PayrollRecord;
-import grant.coburn.util.PayrollCalculator;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
@@ -17,6 +17,7 @@ import javafx.stage.Stage;
 public class PaycheckView extends VBox {
     private final Stage stage;
     private final Runnable onClose;
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MM/dd/yyyy");
 
     public PaycheckView(Stage stage, Employee employee, PayrollRecord record, Runnable onClose) {
         this.stage = stage;
@@ -26,116 +27,111 @@ public class PaycheckView extends VBox {
 
     private void setupUI(Employee employee, PayrollRecord record) {
         this.setAlignment(Pos.TOP_CENTER);
-        this.setPadding(new Insets(20));
-        this.setSpacing(10);
+        this.setPadding(new Insets(40));
+        this.setSpacing(30);
+        this.setStyle("-fx-background-color: -fx-grey-100;");
 
-        // Title
+        // Title section
+        VBox titleBox = new VBox(10);
+        titleBox.setAlignment(Pos.CENTER);
         Text title = new Text("Paycheck Details");
-        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+        title.getStyleClass().add("title");
+        Text subtitle = new Text(String.format("%s - Pay Period: %s to %s",
+            employee.getFullName(),
+            record.getPayPeriodStart().format(DATE_FORMATTER),
+            record.getPayPeriodEnd().format(DATE_FORMATTER)));
+        subtitle.getStyleClass().add("subtitle");
+        titleBox.getChildren().addAll(title, subtitle);
 
-        // Employee info
-        VBox employeeInfo = new VBox(5);
-        employeeInfo.setAlignment(Pos.CENTER_LEFT);
-        employeeInfo.getChildren().addAll(
-            new Text("Employee: " + employee.getFullName()),
-            new Text("Employee ID: " + employee.getEmployeeId()),
-            new Text("Pay Period: " + record.getPayPeriodStart().format(DateTimeFormatter.ofPattern("MM/dd/yyyy")) + " - " + record.getPayPeriodEnd().format(DateTimeFormatter.ofPattern("MM/dd/yyyy")))
-        );
+        // Main content card
+        VBox contentCard = new VBox(20);
+        contentCard.getStyleClass().add("card");
+        contentCard.setPadding(new Insets(30));
+        contentCard.setMaxWidth(600);
 
-        // Earnings
-        VBox earnings = new VBox(5);
-        earnings.setAlignment(Pos.CENTER_LEFT);
+        // Earnings section
+        Text earningsTitle = new Text("Earnings");
+        earningsTitle.getStyleClass().add("subtitle");
+        earningsTitle.setStyle("-fx-font-weight: bold;");
         
-        if (employee.getPayType() == Employee.PayType.SALARY) {
-            earnings.getChildren().addAll(
-                new Text("Earnings:"),
-                new Text(formatSimpleLine("Regular Pay", record.getGrossPay() - record.getOvertimePay())),
-                new Text(formatSimpleLine("Overtime Pay", record.getOvertimePay())),
-                new Text(formatSimpleLine("Gross Pay", record.getGrossPay()))
-            );
-        } else {
-            // Calculate hours worked from gross pay and hourly rate
-            double hoursWorked = (record.getGrossPay() - record.getOvertimePay()) / employee.getBaseSalary();
-            earnings.getChildren().addAll(
-                new Text("Earnings:"),
-                new Text(String.format(
-                    "Regular Pay: %s/hr × %.1f hrs = %s", 
-                    formatMoney(employee.getBaseSalary()), hoursWorked, 
-                    formatMoney(record.getGrossPay() - record.getOvertimePay()
-                ))),
-                new Text(formatSimpleLine("Overtime Pay", record.getOvertimePay())),
-                new Text(formatSimpleLine("Gross Pay", record.getGrossPay()))
-            );
-        }
-
-        // Deductions
-        VBox deductions = new VBox(5);
-        deductions.setAlignment(Pos.CENTER_LEFT);
-
-        deductions.getChildren().addAll(
-            new Text("Deductions:"),
-            new Text(formatDeductionLine("State Tax", PayrollCalculator.STATE_TAX_RATE, record.getStateTax())),
-            new Text(formatDeductionLine("Federal Tax", PayrollCalculator.FEDERAL_TAX_RATE, record.getFederalTax())),
-            new Text(formatDeductionLine("Social Security", PayrollCalculator.SOCIAL_SECURITY_RATE, record.getSocialSecurityTax())),
-            new Text(formatDeductionLine("Medicare", PayrollCalculator.MEDICARE_RATE, record.getMedicareTax())),
-            new Text(formatSimpleLine("Medical", record.getMedicalDeduction())),
-            new Text(formatSimpleLine("Total Deductions", record.getTotalDeductions()))
+        VBox earningsBox = new VBox(10);
+        earningsBox.getChildren().addAll(
+            createDetailRow("Regular Pay:", formatMoney(record.getGrossPay() - record.getOvertimePay())),
+            createDetailRow("Overtime Pay:", formatMoney(record.getOvertimePay())),
+            createDetailRow("Gross Pay:", formatMoney(record.getGrossPay()))
         );
 
-        // Benefits
-        VBox benefits = new VBox(5);
-        benefits.setAlignment(Pos.CENTER_LEFT);
-        benefits.getChildren().addAll(
-            new Text("Benefits:"),
-            new Text(formatSimpleLine("Dependent Stipend", record.getDependentStipend()))
+        // Deductions section
+        Text deductionsTitle = new Text("Deductions");
+        deductionsTitle.getStyleClass().add("subtitle");
+        deductionsTitle.setStyle("-fx-font-weight: bold;");
+        
+        VBox deductionsBox = new VBox(10);
+        deductionsBox.getChildren().addAll(
+            createDetailRow("Federal Tax:", formatMoney(record.getFederalTax())),
+            createDetailRow("State Tax:", formatMoney(record.getStateTax())),
+            createDetailRow("Social Security:", formatMoney(record.getSocialSecurityTax())),
+            createDetailRow("Medicare:", formatMoney(record.getMedicareTax())),
+            createDetailRow("Medical Insurance:", formatMoney(record.getMedicalDeduction()))
         );
 
-        // Net Pay
-        VBox netPay = new VBox(5);
-        netPay.setAlignment(Pos.CENTER_LEFT);
-        netPay.getChildren().addAll(
-            new Text("Net Pay:"),
-            new Text(formatMoney(record.getNetPay()))
+        // Calculate total deductions
+        double totalDeductions = record.getFederalTax() + 
+                               record.getStateTax() + 
+                               record.getSocialSecurityTax() + 
+                               record.getMedicareTax() + 
+                               record.getMedicalDeduction();
+
+        // Total deductions row
+        HBox totalDeductionsBox = createDetailRow("Total Deductions:", formatMoney(totalDeductions));
+        totalDeductionsBox.setStyle("-fx-font-weight: bold;");
+
+        // Summary section
+        Separator separator = new Separator();
+        separator.setPadding(new Insets(10, 0, 10, 0));
+
+        HBox totalBox = createDetailRow("Net Pay:", formatMoney(record.getNetPay()));
+        totalBox.setStyle("-fx-font-weight: bold;");
+
+        // Add all sections to content card
+        contentCard.getChildren().addAll(
+            earningsTitle,
+            earningsBox,
+            new Separator(),
+            deductionsTitle,
+            deductionsBox,
+            new Separator(),
+            totalDeductionsBox,
+            separator,
+            totalBox
         );
 
-        // Close button
+        // Button section
         Button closeButton = new Button("Close");
+        closeButton.getStyleClass().add("button-secondary");
         closeButton.setOnAction(e -> {
             if (onClose != null) {
                 onClose.run();
             }
+            stage.close();
         });
 
-        // Add all components
-        this.getChildren().addAll(
-            title,
-            new Separator(),
-            employeeInfo,
-            new Separator(),
-            earnings,
-            new Separator(),
-            deductions,
-            new Separator(),
-            benefits,
-            new Separator(),
-            netPay,
-            closeButton
-        );
+        // Add everything to main container
+        this.getChildren().addAll(titleBox, contentCard, closeButton);
     }
 
-    private static String formatMoney(double amount) {
-        return String.format(Locale.US, "$%,.2f", amount);
+    private HBox createDetailRow(String label, String value) {
+        HBox row = new HBox(10);
+        row.setAlignment(Pos.CENTER_RIGHT);
+        Label labelText = new Label(label);
+        labelText.setMinWidth(150);
+        Label valueText = new Label(value);
+        valueText.setMinWidth(100);
+        row.getChildren().addAll(labelText, valueText);
+        return row;
     }
 
-    private static String formatPercentage(double rate) {
-        return String.format(Locale.US, "%.2f%%", rate * 100);
-    }
-
-    private static String formatDeductionLine(String label, double rate, double amount) {
-        return String.format("%s (%s): %s", label, formatPercentage(rate), formatMoney(amount));
-    }
-    
-    private static String formatSimpleLine(String label, double amount) {
-        return String.format("%s: %s", label, formatMoney(amount));
+    private String formatMoney(double amount) {
+        return String.format("$%,.2f", amount);
     }
 } 

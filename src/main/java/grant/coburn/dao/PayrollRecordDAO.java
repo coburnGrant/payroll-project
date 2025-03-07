@@ -130,4 +130,30 @@ public class PayrollRecordDAO {
         record.setCreationDate(rs.getTimestamp("creation_date").toLocalDateTime());
         return record;
     }
+
+    /**
+     * Delete a payroll record for an employee within a specific pay period.
+     * @param employeeId The ID of the employee
+     * @param startDate The start date of the pay period
+     * @param endDate The end date of the pay period
+     * @return true if the record was deleted successfully, false otherwise
+     */
+    public boolean deletePayrollRecord(String employeeId, LocalDate startDate, LocalDate endDate) {
+        String sql = "DELETE FROM payroll_records WHERE employee_id = ? AND pay_period_start = ? AND pay_period_end = ?";
+        
+        try (Connection conn = dbUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, employeeId);
+            stmt.setDate(2, java.sql.Date.valueOf(startDate));
+            stmt.setDate(3, java.sql.Date.valueOf(endDate));
+            
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error deleting payroll record: " + e.getMessage());
+            return false;
+        }
+    }
 } 

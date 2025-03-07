@@ -5,11 +5,12 @@ import java.util.Locale;
 
 import grant.coburn.dao.EmployeeDAO;
 import grant.coburn.model.Employee;
-import grant.coburn.view.TimeSheetView;
+import grant.coburn.view.employee.TimeSheetView;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
@@ -20,6 +21,8 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
 public class EmployeeManagementView extends BorderPane {
@@ -44,15 +47,34 @@ public class EmployeeManagementView extends BorderPane {
     }
 
     private void setupUI() {
+        this.setPadding(new Insets(40));
+        this.setStyle("-fx-background-color: -fx-grey-100;");
+
+        // Title section
+        VBox titleBox = new VBox(10);
+        titleBox.setAlignment(Pos.CENTER);
+        Text title = new Text("Employee Management");
+        title.getStyleClass().add("title");
+        titleBox.getChildren().add(title);
+        this.setTop(titleBox);
+
         // Create the table
+        VBox tableCard = new VBox(20);
+        tableCard.getStyleClass().add("card");
+        tableCard.setPadding(new Insets(20));
+        
         employeeTable = new TableView<>();
         setupTable();
+        tableCard.getChildren().add(employeeTable);
+        
+        this.setCenter(tableCard);
 
         // Create buttons
         addButton = new Button("Add Employee");
         editButton = new Button("Edit Employee");
         deleteButton = new Button("Delete Employee");
         backButton = new Button("Back to Dashboard");
+        backButton.getStyleClass().add("button-secondary");
         viewTimeSheetButton = new Button("View Time Sheet");
         viewTimeSheetButton.setDisable(true);
 
@@ -65,13 +87,11 @@ public class EmployeeManagementView extends BorderPane {
 
         // Button container
         HBox buttonBox = new HBox(10);
-        buttonBox.setPadding(new Insets(10));
+        buttonBox.setPadding(new Insets(20, 0, 0, 0));
+        buttonBox.setAlignment(Pos.CENTER_RIGHT);
         buttonBox.getChildren().addAll(addButton, editButton, deleteButton, viewTimeSheetButton, backButton);
 
-        // Layout
-        this.setCenter(employeeTable);
         this.setBottom(buttonBox);
-        this.setPadding(new Insets(10));
 
         setupTableSelection();
     }
@@ -240,11 +260,17 @@ public class EmployeeManagementView extends BorderPane {
         Employee selectedEmployee = employeeTable.getSelectionModel().getSelectedItem();
         if (selectedEmployee != null) {
             Stage timeSheetStage = new Stage();
-            timeSheetStage.initOwner(stage);  // Set the owner stage
-            TimeSheetView timeSheetView = new TimeSheetView(timeSheetStage, selectedEmployee, () -> {
-                timeSheetStage.close();
-            });
-            timeSheetView.show();
+            timeSheetStage.initOwner(stage);
+            
+            TimeSheetView timeSheetView = new TimeSheetView(selectedEmployee, timeSheetStage);
+            timeSheetView.setOnBack(() -> timeSheetStage.close());
+            
+            javafx.scene.Scene scene = new javafx.scene.Scene(timeSheetView, 800, 600);
+            scene.getStylesheets().addAll(stage.getScene().getStylesheets());
+            
+            timeSheetStage.setTitle("Time Sheet - " + selectedEmployee.getFullName());
+            timeSheetStage.setScene(scene);
+            timeSheetStage.show();
         }
     }
 } 

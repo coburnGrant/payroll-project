@@ -2,6 +2,7 @@ package grant.coburn.view.employee;
 
 import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 import grant.coburn.dao.TimeEntryDAO;
@@ -20,6 +21,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.stage.Modality;
+import javafx.scene.Scene;
+import javafx.scene.control.ButtonType;
 
 public class TimeSheetView extends BorderPane {
     private final Employee employee;
@@ -44,32 +48,81 @@ public class TimeSheetView extends BorderPane {
     }
 
     private void setupUI() {
-        this.setPadding(new Insets(20));
-        this.setStyle("-fx-background-color: white;");
+        this.setPadding(new Insets(40));
+        this.setStyle("-fx-background-color: -fx-grey-100;");
 
-        // Title
-        Text title = new Text("Time Sheet - " + employee.getFullName());
-        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+        // Title section
         VBox titleBox = new VBox(10);
         titleBox.setAlignment(Pos.CENTER);
-        titleBox.getChildren().add(title);
+        Text title = new Text("Time Sheet");
+        title.getStyleClass().add("title");
+        Text subtitle = new Text(employee.getFullName());
+        subtitle.getStyleClass().add("subtitle");
+        titleBox.getChildren().addAll(title, subtitle);
         this.setTop(titleBox);
 
-        // Table setup
+        // Main content
+        VBox content = new VBox(20);
+        content.setPadding(new Insets(20));
+        content.getStyleClass().add("card");
+
+        // Time entries table
+        setupTimeEntryTable();
+        content.getChildren().add(timeEntryTable);
+        this.setCenter(content);
+
+        // Button bar
+        HBox buttonBar = new HBox(10);
+        buttonBar.setPadding(new Insets(20, 0, 0, 0));
+        buttonBar.setAlignment(Pos.CENTER_RIGHT);
+
+        editButton = new Button("Edit Entry");
+        deleteButton = new Button("Delete Entry");
+        backButton = new Button("Back to Dashboard");
+
+        editButton.setDisable(true);
+        deleteButton.setDisable(true);
+        
+        editButton.getStyleClass().add("button-primary");
+        deleteButton.getStyleClass().addAll("button-secondary", "button-danger");
+        backButton.getStyleClass().add("button-secondary");
+
+        editButton.setOnAction(e -> handleEdit());
+        deleteButton.setOnAction(e -> handleDelete());
+        backButton.setOnAction(e -> {
+            if (onBack != null) {
+                onBack.run();
+            }
+        });
+
+        buttonBar.getChildren().addAll(editButton, deleteButton, backButton);
+        this.setBottom(buttonBar);
+
+        // Set up table selection listener
+        timeEntryTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            boolean hasSelection = newSelection != null;
+            boolean isLocked = hasSelection && newSelection.isLocked();
+            editButton.setDisable(!hasSelection || isLocked);
+            deleteButton.setDisable(!hasSelection || isLocked);
+        });
+    }
+
+    private void setupTimeEntryTable() {
         timeEntryTable = new TableView<>();
         timeEntryTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         // Date column
         TableColumn<TimeEntry, LocalDate> dateColumn = new TableColumn<>("Date");
         dateColumn.setCellValueFactory(new PropertyValueFactory<>("workDate"));
-        dateColumn.setCellFactory(col -> new TableCell<TimeEntry, LocalDate>() {
+        dateColumn.setMinWidth(150);
+        dateColumn.setCellFactory(column -> new TableCell<TimeEntry, LocalDate>() {
             @Override
             protected void updateItem(LocalDate date, boolean empty) {
                 super.updateItem(date, empty);
-                if (empty) {
+                if (empty || date == null) {
                     setText(null);
                 } else {
-                    setText(date.toString());
+                    setText(date.format(DateTimeFormatter.ofPattern("MM/dd/yyyy")));
                 }
             }
         });
@@ -77,11 +130,13 @@ public class TimeSheetView extends BorderPane {
         // Hours column
         TableColumn<TimeEntry, Double> hoursColumn = new TableColumn<>("Hours");
         hoursColumn.setCellValueFactory(new PropertyValueFactory<>("hoursWorked"));
-        hoursColumn.setCellFactory(col -> new TableCell<TimeEntry, Double>() {
+        hoursColumn.setStyle("-fx-alignment: CENTER-RIGHT;");
+        hoursColumn.setMinWidth(100);
+        hoursColumn.setCellFactory(column -> new TableCell<TimeEntry, Double>() {
             @Override
             protected void updateItem(Double hours, boolean empty) {
                 super.updateItem(hours, empty);
-                if (empty) {
+                if (empty || hours == null) {
                     setText(null);
                 } else {
                     setText(String.format("%.2f", hours));
@@ -92,11 +147,13 @@ public class TimeSheetView extends BorderPane {
         // PTO column
         TableColumn<TimeEntry, Boolean> ptoColumn = new TableColumn<>("PTO");
         ptoColumn.setCellValueFactory(new PropertyValueFactory<>("pto"));
-        ptoColumn.setCellFactory(col -> new TableCell<TimeEntry, Boolean>() {
+        ptoColumn.setStyle("-fx-alignment: CENTER;");
+        ptoColumn.setMinWidth(80);
+        ptoColumn.setCellFactory(column -> new TableCell<TimeEntry, Boolean>() {
             @Override
             protected void updateItem(Boolean isPto, boolean empty) {
                 super.updateItem(isPto, empty);
-                if (empty) {
+                if (empty || isPto == null) {
                     setText(null);
                 } else {
                     setText(isPto ? "Yes" : "No");
@@ -104,57 +161,27 @@ public class TimeSheetView extends BorderPane {
             }
         });
 
-        // Status column
-        TableColumn<TimeEntry, Boolean> statusColumn = new TableColumn<>("Status");
-        statusColumn.setCellValueFactory(new PropertyValueFactory<>("locked"));
-        statusColumn.setCellFactory(col -> new TableCell<TimeEntry, Boolean>() {
+        // Locked column
+        TableColumn<TimeEntry, Boolean> lockedColumn = new TableColumn<>("Locked");
+        lockedColumn.setCellValueFactory(new PropertyValueFactory<>("locked"));
+        lockedColumn.setStyle("-fx-alignment: CENTER;");
+        lockedColumn.setMinWidth(80);
+        lockedColumn.setCellFactory(column -> new TableCell<TimeEntry, Boolean>() {
             @Override
             protected void updateItem(Boolean isLocked, boolean empty) {
                 super.updateItem(isLocked, empty);
-                if (empty) {
+                if (empty || isLocked == null) {
                     setText(null);
                 } else {
-                    setText(isLocked ? "Locked" : "Editable");
+                    setText(isLocked ? "Yes" : "No");
                 }
             }
         });
 
-        timeEntryTable.getColumns().addAll(dateColumn, hoursColumn, ptoColumn, statusColumn);
+        timeEntryTable.getColumns().addAll(dateColumn, hoursColumn, ptoColumn, lockedColumn);
+        timeEntryTable.setMinHeight(400);
 
-        // Buttons
-        editButton = new Button("Edit Entry");
-        deleteButton = new Button("Delete Entry");
-        backButton = new Button("Back");
-
-        editButton.setOnAction(e -> handleEdit());
-        deleteButton.setOnAction(e -> handleDelete());
-        backButton.setOnAction(e -> {
-            if (onBack != null) {
-                onBack.run();
-            }
-        });
-
-        // Disable edit/delete buttons until an entry is selected
-        editButton.setDisable(true);
-        deleteButton.setDisable(true);
-
-        // Button container
-        HBox buttonBox = new HBox(10);
-        buttonBox.setAlignment(Pos.CENTER);
-        buttonBox.setPadding(new Insets(10));
-        buttonBox.getChildren().addAll(editButton, deleteButton, backButton);
-
-        // Enable/disable buttons based on selection
-        timeEntryTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            boolean hasSelection = newSelection != null;
-            boolean isEditable = hasSelection && !newSelection.isLocked();
-            editButton.setDisable(!isEditable);
-            deleteButton.setDisable(!isEditable);
-        });
-
-        // Layout
-        this.setCenter(timeEntryTable);
-        this.setBottom(buttonBox);
+        loadTimeEntries();
     }
 
     private void loadTimeEntries() {
@@ -170,13 +197,16 @@ public class TimeSheetView extends BorderPane {
                 loadTimeEntries();
                 showSuccess("Time entry updated successfully!");
             });
-            editView.setOnCancel(() -> stage.hide());
+            editView.setOnCancel(() -> {});
             
             Stage editStage = new Stage();
             editStage.initOwner(stage);
+            editStage.initModality(Modality.APPLICATION_MODAL);
             editStage.setTitle("Edit Time Entry");
-            editStage.setScene(new javafx.scene.Scene(editView, 600, 400));
-            editStage.show();
+            Scene scene = new Scene(editView);
+            scene.getStylesheets().addAll(stage.getScene().getStylesheets());
+            editStage.setScene(scene);
+            editStage.showAndWait();
         }
     }
 
@@ -189,7 +219,7 @@ public class TimeSheetView extends BorderPane {
             confirmDialog.setContentText("Are you sure you want to delete this time entry?");
             
             confirmDialog.showAndWait().ifPresent(response -> {
-                if (response == javafx.scene.control.ButtonType.OK) {
+                if (response == ButtonType.OK) {
                     boolean success = TimeEntryDAO.shared.deleteTimeEntry(selectedEntry);
                     if (success) {
                         loadTimeEntries();

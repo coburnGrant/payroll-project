@@ -25,7 +25,9 @@ import com.itextpdf.layout.properties.UnitValue;
 import com.itextpdf.layout.properties.VerticalAlignment;
 
 import grant.coburn.dao.PayrollRecordDAO;
+import grant.coburn.model.Employee;
 import grant.coburn.model.PayrollRecord;
+import grant.coburn.util.PayrollProcessor;
 
 /**
  * Implementation of ReportGenerator for PDF format.
@@ -36,6 +38,7 @@ public class PDFReportGenerator implements ReportGenerator {
     private static final DeviceRgb ALTERNATE_ROW_COLOR = new DeviceRgb(240, 240, 240);
     private static final float[] COLUMN_WIDTHS = {
         1.0f,  // Employee ID
+        1.5f,  // Employee Name
         1.2f,  // Pay Period Start
         1.2f,  // Pay Period End
         1.0f,  // Gross Pay
@@ -54,6 +57,7 @@ public class PDFReportGenerator implements ReportGenerator {
 
     private static final String[] COLUMN_HEADERS = {
         "Emp ID",
+        "Employee Name",
         "Start Date",
         "End Date",
         "Gross",
@@ -72,6 +76,7 @@ public class PDFReportGenerator implements ReportGenerator {
 
     private static final String[] COLUMN_TOOLTIPS = {
         "Employee ID",
+        "Employee Full Name",
         "Pay Period Start Date",
         "Pay Period End Date",
         "Gross Pay",
@@ -96,17 +101,64 @@ public class PDFReportGenerator implements ReportGenerator {
     public void generateReport(String outputPath, LocalDate startDate, LocalDate endDate) throws IOException {
         List<PayrollRecord> records = payrollRecordDAO.getPayrollRecordsByDateRange(startDate, endDate);
 
-        PdfWriter writer = new PdfWriter(outputPath);
-        PdfDocument pdf = new PdfDocument(writer);
-        pdf.setDefaultPageSize(PageSize.A4.rotate());
-        
-        // Add page number handler
-        pdf.addEventHandler(PdfDocumentEvent.END_PAGE, new PageNumberHandler());
-        
-        Document document = new Document(pdf);
-        document.setMargins(20, 20, 40, 20); // top, right, bottom, left
+        try (
+            PdfWriter writer = new PdfWriter(outputPath);
+            PdfDocument pdf = new PdfDocument(writer)
+        ) {
+            
+            Document document = new Document(pdf, PageSize.A4.rotate());
+            document.setMargins(20, 20, 20, 20);
 
-        // Add title and date range
+                // Add page number handler
+            pdf.addEventHandler(PdfDocumentEvent.END_PAGE, new PageNumberHandler());
+
+            // Add header
+            addHeader(document, startDate, endDate);
+
+            // Create main table
+            Table table = new Table(UnitValue.createPercentArray(COLUMN_WIDTHS))
+                .useAllAvailableWidth()
+                .setFontSize(8);
+
+            // Add table headers
+            addTableHeaders(table);
+
+            // Add data rows
+            boolean alternate = false;
+            for (PayrollRecord record : records) {
+                Employee employee = PayrollProcessor.shared().getEmployeeById(record.getEmployeeId());
+                String employeeName = employee != null ? employee.getFullName() : "Unknown";
+
+                addCell(table, record.getEmployeeId(), alternate);
+                addCell(table, employeeName, alternate);
+                addCell(table, record.getPayPeriodStart().format(DATE_FORMATTER), alternate);
+                addCell(table, record.getPayPeriodEnd().format(DATE_FORMATTER), alternate);
+                addCell(table, formatMoney(record.getGrossPay()), alternate);
+                addCell(table, formatMoney(record.getNetPay()), alternate);
+                addCell(table, formatMoney(record.getMedicalDeduction()), alternate);
+                addCell(table, formatMoney(record.getDependentStipend()), alternate);
+                addCell(table, formatMoney(record.getStateTax()), alternate);
+                addCell(table, formatMoney(record.getFederalTax()), alternate);
+                addCell(table, formatMoney(record.getSocialSecurityTax()), alternate);
+                addCell(table, formatMoney(record.getMedicareTax()), alternate);
+                addCell(table, formatMoney(record.getEmployerSocialSecurity()), alternate);
+                addCell(table, formatMoney(record.getEmployerMedicare()), alternate);
+                addCell(table, formatMoney(record.getOvertimePay()), alternate);
+                addCell(table, formatMoney(record.getTotalDeductions()), alternate);
+                
+                alternate = !alternate;
+            }
+
+            document.add(table);
+
+            // Add summary section
+            addSummarySection(document, records);
+
+            document.close();
+        }
+    }
+
+    private void addHeader(Document document, LocalDate startDate, LocalDate endDate) {
         document.add(new Paragraph("Payroll Report")
             .setFontSize(16)
             .setBold()
@@ -116,28 +168,28 @@ public class PDFReportGenerator implements ReportGenerator {
             endDate.format(DATE_FORMATTER)))
             .setFontSize(12)
             .setTextAlignment(TextAlignment.CENTER));
+    }
 
-        // Add summary section
-        addSummarySection(document, records);
+    private void addTableHeaders(Table table) {
+        for (String header : COLUMN_HEADERS) {
+            Cell headerCell = createTableHeaderCell(header);
 
-        // Create table
-        Table table = new Table(UnitValue.createPercentArray(COLUMN_WIDTHS))
-            .useAllAvailableWidth()
-            .setFontSize(8)
-            .setMarginTop(20);
-
-        // Add headers
-        addTableHeader(table);
-
-        // Add data
-        boolean isAlternateRow = false;
-        for (PayrollRecord record : records) {
-            addTableRow(table, record, isAlternateRow);
-            isAlternateRow = !isAlternateRow;
+            table.addHeaderCell(headerCell);
         }
+    }
 
-        document.add(table);
-        document.close();
+    private Cell createTableHeaderCell(String header) {
+        Cell headerCell = new Cell()
+            .add(new Paragraph(header)
+            .setFixedLeading(20))
+            .setBold()  
+            .setBackgroundColor(ColorConstants.LIGHT_GRAY)
+            .setTextAlignment(TextAlignment.CENTER)
+            .setFontSize(8)
+            .setHeight(20)
+            .setPadding(2);
+
+        return headerCell;
     }
 
     private void addSummarySection(Document document, List<PayrollRecord> records) {
@@ -193,62 +245,20 @@ public class PDFReportGenerator implements ReportGenerator {
             .setBorder(null));
     }
 
-    private void addTableHeader(Table table) {
-        for (String header : COLUMN_HEADERS) {
-            Cell headerCell = new Cell()
-                .add(new Paragraph(header)
-                    .setFixedLeading(20))
-                .setBold()
-                .setBackgroundColor(ColorConstants.LIGHT_GRAY)
-                .setTextAlignment(TextAlignment.CENTER)
-                .setFontSize(8)
-                .setHeight(20)
-                .setPadding(2);
-
-            table.addHeaderCell(headerCell);
-        }
-    }
-
-    private void addTableRow(Table table, PayrollRecord record, boolean isAlternate) {
-        Cell[] cells = new Cell[]{
-            createCell(record.getEmployeeId(), TextAlignment.CENTER),
-            createCell(record.getPayPeriodStart().format(DATE_FORMATTER), TextAlignment.CENTER),
-            createCell(record.getPayPeriodEnd().format(DATE_FORMATTER), TextAlignment.CENTER),
-            createMoneyCell(record.getGrossPay()),
-            createMoneyCell(record.getNetPay()),
-            createMoneyCell(record.getMedicalDeduction()),
-            createMoneyCell(record.getDependentStipend()),
-            createMoneyCell(record.getStateTax()),
-            createMoneyCell(record.getFederalTax()),
-            createMoneyCell(record.getSocialSecurityTax()),
-            createMoneyCell(record.getMedicareTax()),
-            createMoneyCell(record.getEmployerSocialSecurity()),
-            createMoneyCell(record.getEmployerMedicare()),
-            createMoneyCell(record.getOvertimePay()),
-            createMoneyCell(record.getTotalDeductions())
-        };
-
-        for (Cell cell : cells) {
-            if (isAlternate) {
-                cell.setBackgroundColor(ALTERNATE_ROW_COLOR);
-            }
-            table.addCell(cell);
-        }
-    }
-
-    private Cell createCell(String value, TextAlignment alignment) {
-        return new Cell()
+    private void addCell(Table table, String value, boolean isAlternate) {
+        Cell cell = new Cell()
             .add(new Paragraph(value)
                 .setFixedLeading(20))
-            .setTextAlignment(alignment)
+            .setTextAlignment(TextAlignment.CENTER)
             .setVerticalAlignment(VerticalAlignment.MIDDLE)
             .setHeight(20)
             .setPadding(2);
-    }
 
-    private Cell createMoneyCell(double amount) {
-        return createCell(formatMoney(amount), TextAlignment.RIGHT)
-            .setPaddingRight(5);
+        if (isAlternate) {
+            cell.setBackgroundColor(ALTERNATE_ROW_COLOR);
+        }
+
+        table.addCell(cell);
     }
 
     private String formatMoney(double amount) {

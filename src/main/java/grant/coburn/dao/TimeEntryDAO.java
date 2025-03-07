@@ -70,8 +70,8 @@ public class TimeEntryDAO {
     }
 
     public boolean updateTimeEntry(TimeEntry entry) {
-        String sql = "UPDATE time_entries SET work_date = ?, hours_worked = ?, is_pto = ? " +
-                    "WHERE entry_id = ? AND employee_id = ? AND is_locked = ?";
+        String sql = "UPDATE time_entries SET work_date = ?, hours_worked = ?, is_pto = ?, is_locked = ? " +
+                    "WHERE entry_id = ? AND employee_id = ?";
 
         try (Connection conn = dbUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -79,9 +79,9 @@ public class TimeEntryDAO {
             stmt.setDate(1, java.sql.Date.valueOf(entry.getWorkDate()));
             stmt.setDouble(2, entry.getHoursWorked());
             stmt.setBoolean(3, entry.isPto());
-            stmt.setLong(4, entry.getEntryId());
-            stmt.setString(5, entry.getEmployeeId());
-            stmt.setBoolean(6, entry.isLocked());
+            stmt.setBoolean(4, entry.isLocked());
+            stmt.setLong(5, entry.getEntryId());
+            stmt.setString(6, entry.getEmployeeId());
 
             int rowsAffected = stmt.executeUpdate();
             return rowsAffected > 0;
@@ -154,5 +154,32 @@ public class TimeEntryDAO {
         entry.setEntryId(rs.getLong("entry_id"));
         entry.setLocked(rs.getBoolean("is_locked"));
         return entry;
+    }
+
+    /**
+     * Check if a time entry exists for a given employee on a specific date.
+     * @param employeeId The ID of the employee
+     * @param workDate The date to check
+     * @return The existing time entry if found, null otherwise
+     */
+    public TimeEntry getTimeEntryByEmployeeIdAndDate(String employeeId, LocalDate workDate) {
+        String sql = "SELECT * FROM time_entries WHERE employee_id = ? AND work_date = ?";
+        
+        try (Connection conn = dbUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, employeeId);
+            stmt.setDate(2, java.sql.Date.valueOf(workDate));
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return extractTimeEntryFromResultSet(rs);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error checking for existing time entry: " + e.getMessage());
+        }
+        
+        return null;
     }
 } 

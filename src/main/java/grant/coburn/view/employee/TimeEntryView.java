@@ -2,6 +2,7 @@ package grant.coburn.view.employee;
 
 import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 import grant.coburn.model.Employee;
@@ -234,9 +235,19 @@ public class TimeEntryView extends VBox {
     private void handleSave() {
         try {
             double hours = hoursField.getText().isEmpty() ? 0.0 : Double.parseDouble(hoursField.getText());
+            LocalDate selectedDate = datePicker.getValue();
+
+            // Check for existing entry
+            TimeEntry existingEntry = grant.coburn.dao.TimeEntryDAO.shared.getTimeEntryByEmployeeIdAndDate(employee.getEmployeeId(), selectedDate);
+            if (existingEntry != null) {
+                showError("A time entry already exists for " + selectedDate.format(DateTimeFormatter.ofPattern("MM/dd/yyyy")) + 
+                         ". Please edit the existing entry instead.");
+                return;
+            }
+
             TimeEntry entry = new TimeEntry(
                 employee.getEmployeeId(),
-                datePicker.getValue(),
+                selectedDate,
                 hours,
                 ptoCheckBox.isSelected()
             );

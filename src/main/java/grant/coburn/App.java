@@ -42,9 +42,10 @@ public class App extends Application {
         loginView.setOnLogin(this::handleLogin);
         loginView.setOnCreateAccountClick(this::showCreateAccountView);
 
-        Scene loginScene = createScene(loginView, 400, 300);
+        Scene loginScene = createScene(loginView, 600, 500);
         primaryStage.setTitle("Payroll System - Login");
         primaryStage.setScene(loginScene);
+        primaryStage.centerOnScreen();
         primaryStage.show();
     }
 
@@ -67,9 +68,10 @@ public class App extends Application {
         CreateAccountView createAccountView = new CreateAccountView();
         createAccountView.setOnCreateAccount(this::handleCreateAccount);
         createAccountView.setOnBackToLogin(this::showLoginView);
-        Scene createAccountScene = createScene(createAccountView, 400, 400);
+        Scene createAccountScene = createScene(createAccountView, 600, 600);
         primaryStage.setTitle("Payroll System - Create Account");
         primaryStage.setScene(createAccountScene);
+        primaryStage.centerOnScreen();
     }
 
     private Boolean handleCreateAccount(User user) {
@@ -100,17 +102,19 @@ public class App extends Application {
     private void showAdminDashboard(User user) {
         AdminDashboardView dashboard = new AdminDashboardView(user, primaryStage);
         dashboard.setOnLogout(this::showLoginView);
-        Scene dashboardScene = createScene(dashboard, 600, 400);
+        Scene dashboardScene = createScene(dashboard, 1024, 768);
         primaryStage.setTitle("Payroll System - Admin Dashboard");
         primaryStage.setScene(dashboardScene);
+        primaryStage.centerOnScreen();
     }
 
     private void showEmployeeDashboard(User user, Employee employeeData) {
         EmployeeDashboardView dashboard = new EmployeeDashboardView(user, employeeData, primaryStage);
         dashboard.setOnLogout(this::showLoginView);
-        Scene dashboardScene = createScene(dashboard, 600, 400);
+        Scene dashboardScene = createScene(dashboard, 1024, 768);
         primaryStage.setTitle("Payroll System - Employee Dashboard");
         primaryStage.setScene(dashboardScene);
+        primaryStage.centerOnScreen();
     }
 
     private void showChangePasswordView(User user, boolean isForced) {
@@ -119,9 +123,10 @@ public class App extends Application {
         if (!isForced) {
             changePasswordView.setOnBack(() -> showDashboard(user));
         }
-        Scene changePasswordScene = createScene(changePasswordView, 400, 300);
+        Scene changePasswordScene = createScene(changePasswordView, 600, 500);
         primaryStage.setTitle("Payroll System - Change Password");
         primaryStage.setScene(changePasswordScene);
+        primaryStage.centerOnScreen();
     }
 
     public static void main(String[] args) {

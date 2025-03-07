@@ -111,22 +111,29 @@ public class AdminDashboardView extends VBox {
     }
 
     private void showEmployeeManagement() {
+        // Store the current dashboard scene
+        Scene dashboardScene = stage.getScene();
+        
         EmployeeManagementView employeeManagement = new EmployeeManagementView(stage);
         employeeManagement.setOnBack(() -> {
-            stage.setScene(stage.getScene());
+            stage.setScene(dashboardScene);
         });
+        
         Scene scene = new Scene(employeeManagement, 800, 600);
-        scene.getStylesheets().addAll(stage.getScene().getStylesheets());
+        scene.getStylesheets().addAll(dashboardScene.getStylesheets());
         stage.setScene(scene);
     }
 
     private void handlePayroll() {
+        // Store the current dashboard scene
+        Scene dashboardScene = stage.getScene();
+        
         PayrollProcessingView payrollView = new PayrollProcessingView(stage);
         payrollView.setOnBack(() -> {
-            stage.setScene(stage.getScene());
+            stage.setScene(dashboardScene);
         });
         Scene scene = new Scene(payrollView, 800, 600);
-        scene.getStylesheets().addAll(stage.getScene().getStylesheets());
+        scene.getStylesheets().addAll(dashboardScene.getStylesheets());
         stage.setScene(scene);
     }
 

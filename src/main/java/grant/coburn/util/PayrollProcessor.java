@@ -163,4 +163,26 @@ public class PayrollProcessor {
     public Employee getEmployeeById(String employeeId) {
         return employeeDAO.getEmployee(employeeId);
     }
+
+    /**
+     * Delete a payroll record for an employee within a specific pay period.
+     * @param employeeId The ID of the employee
+     * @param startDate The start date of the pay period
+     * @param endDate The end date of the pay period
+     * @return true if the record was deleted successfully, false otherwise
+     */
+    public boolean deletePayrollRecord(String employeeId, LocalDate startDate, LocalDate endDate) {
+        // First, unlock any time entries for this period
+        List<TimeEntry> timeEntries = timeEntryDAO.getTimeEntriesByEmployeeIdAndDateRange(
+            employeeId, startDate, endDate
+        );
+        
+        for (TimeEntry entry : timeEntries) {
+            entry.setLocked(false);
+            timeEntryDAO.updateTimeEntry(entry);
+        }
+
+        // Then delete the payroll record
+        return payrollRecordDAO.deletePayrollRecord(employeeId, startDate, endDate);
+    }
 } 

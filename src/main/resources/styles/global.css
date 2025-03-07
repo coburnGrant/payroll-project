@@ -3,7 +3,7 @@
     -fx-primary: #2196F3;
     -fx-primary-dark: #1976D2;
     -fx-primary-light: #BBDEFB;
-    -fx-accent: #FF4081;
+    -fx-secondary: #64B5F6;
     -fx-grey-100: #F5F5F5;
     -fx-grey-300: #E0E0E0;
     -fx-grey-700: #616161;
@@ -54,6 +54,8 @@
 
 .button-danger {
     -fx-background-color: -fx-error;
+    -fx-text-fill: white;
+    -fx-border-color: transparent;
 }
 
 .button-danger:hover {
@@ -81,7 +83,6 @@
 
 .table-view .column-header {
     -fx-background-color: -fx-primary;
-    -fx-text-fill: white;
 }
 
 .table-view .column-header .label {
@@ -101,6 +102,16 @@
 
 .table-row-cell:selected {
     -fx-background-color: -fx-primary-light;
+    -fx-text-fill: -fx-grey-700;
+}
+
+.table-view:focused {
+    -fx-focus-color: -fx-primary;
+    -fx-faint-focus-color: -fx-primary-light;
+}
+
+.table-view .table-cell {
+    -fx-border-color: transparent;
 }
 
 /* Cards */
@@ -128,6 +139,29 @@
 
 .date-picker:focused {
     -fx-border-color: -fx-primary;
+}
+
+.date-picker .arrow-button {
+    -fx-background-color: -fx-primary;
+}
+
+.date-picker .arrow-button:hover {
+    -fx-background-color: -fx-primary-dark;
+}
+
+.date-picker .arrow-button .arrow {
+    -fx-background-color: white;
+}
+
+/* Selection colors */
+.selection-bar {
+    -fx-background-color: -fx-primary-light;
+}
+
+* {
+    -fx-accent: -fx-primary;
+    -fx-focus-color: -fx-primary;
+    -fx-faint-focus-color: -fx-primary-light;
 }
 
 /* Alerts and Dialogs */

@@ -12,6 +12,7 @@ import grant.coburn.util.PayrollProcessor;
 import grant.coburn.view.PaycheckView;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
@@ -25,6 +26,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 public class PayrollProcessingView extends VBox {
@@ -34,6 +36,7 @@ public class PayrollProcessingView extends VBox {
     private TableView<PayrollRecord> payrollTable;
     private Button processButton;
     private Button viewPaycheckButton;
+    private Button deleteButton;
     private Button backButton;
     private Runnable onBack;
 
@@ -81,20 +84,28 @@ public class PayrollProcessingView extends VBox {
         // Buttons
         processButton = new Button("Process Payroll");
         viewPaycheckButton = new Button("View Paycheck");
-        backButton = new Button("Back");
+        deleteButton = new Button("Delete Record");
+        backButton = new Button("Back to Dashboard");
         
         processButton.setOnAction(e -> handleProcessPayroll());
         viewPaycheckButton.setOnAction(e -> handleViewPaycheck());
+        deleteButton.setOnAction(e -> handleDeleteRecord());
         viewPaycheckButton.setDisable(true);
+        deleteButton.setDisable(true);
         backButton.setOnAction(e -> {
             if (onBack != null) {
                 onBack.run();
             }
         });
 
+        processButton.getStyleClass().add("button-primary");
+        viewPaycheckButton.getStyleClass().add("button-primary");
+        deleteButton.getStyleClass().addAll("button-secondary", "button-danger");
+        backButton.getStyleClass().add("button-secondary");
+
         HBox buttonBox = new HBox(10);
         buttonBox.setAlignment(Pos.CENTER);
-        buttonBox.getChildren().addAll(processButton, viewPaycheckButton, backButton);
+        buttonBox.getChildren().addAll(processButton, viewPaycheckButton, deleteButton, backButton);
 
         // Add all components to main VBox
         this.getChildren().addAll(
@@ -122,11 +133,54 @@ public class PayrollProcessingView extends VBox {
             return;
         }
 
-        // Show paycheck view
-        PaycheckView paycheckView = new PaycheckView(stage, employee, selectedRecord, () -> {
-            stage.getScene().setRoot(this);
-        });
-        stage.getScene().setRoot(paycheckView);
+        // Show paycheck view in a modal window
+        Stage paycheckStage = new Stage();
+        paycheckStage.initModality(Modality.APPLICATION_MODAL);
+        paycheckStage.initOwner(stage);
+        paycheckStage.setTitle("Paycheck Details");
+
+        PaycheckView paycheckView = new PaycheckView(paycheckStage, employee, selectedRecord, paycheckStage::close);
+        Scene scene = new Scene(paycheckView);
+        scene.getStylesheets().addAll(stage.getScene().getStylesheets());
+        
+        paycheckStage.setScene(scene);
+        paycheckStage.showAndWait();
+    }
+
+    private void handleDeleteRecord() {
+        PayrollRecord selectedRecord = payrollTable.getSelectionModel().getSelectedItem();
+        if (selectedRecord == null) {
+            showError("Please select a payroll record to delete.");
+            return;
+        }
+
+        // Get employee details for confirmation message
+        Employee employee = PayrollProcessor.shared().getEmployeeById(selectedRecord.getEmployeeId());
+        String employeeName = employee != null ? employee.getFullName() : selectedRecord.getEmployeeId();
+
+        // Show confirmation dialog
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Confirm Delete");
+        alert.setHeaderText("Delete Payroll Record");
+        alert.setContentText(String.format(
+            "Are you sure you want to delete the payroll record for %s?\n\nPay Period: %s - %s\nGross Pay: $%,.2f\nNet Pay: $%,.2f",
+            employeeName,
+            selectedRecord.getPayPeriodStart().format(DateTimeFormatter.ofPattern("MM/dd/yyyy")),
+            selectedRecord.getPayPeriodEnd().format(DateTimeFormatter.ofPattern("MM/dd/yyyy")),
+            selectedRecord.getGrossPay(),
+            selectedRecord.getNetPay()
+        ));
+
+        if (alert.showAndWait().orElse(null) == javafx.scene.control.ButtonType.OK) {
+            // Delete the record
+            boolean success = PayrollProcessor.shared().deletePayrollRecord(selectedRecord.getEmployeeId(), selectedRecord.getPayPeriodStart(), selectedRecord.getPayPeriodEnd());
+            if (success) {
+                showSuccess("Payroll record deleted successfully.");
+                refreshPayrollTable(); // Refresh the table to show the updated list
+            } else {
+                showError("Failed to delete payroll record.");
+            }
+        }
     }
 
     private void setupPayrollTable() {
@@ -137,9 +191,20 @@ public class PayrollProcessingView extends VBox {
 
         // Create columns with minimum widths
         TableColumn<PayrollRecord, String> employeeIdCol = new TableColumn<>("Employee ID");
-        employeeIdCol.setMinWidth(100);
-        employeeIdCol.setPrefWidth(120);
+        employeeIdCol.setMinWidth(80);
+        employeeIdCol.setPrefWidth(100);
         employeeIdCol.setCellValueFactory(new PropertyValueFactory<>("employeeId"));
+
+        // Employee Name Column
+        TableColumn<PayrollRecord, String> employeeNameCol = new TableColumn<>("Employee Name");
+        employeeNameCol.setMinWidth(150);
+        employeeNameCol.setPrefWidth(200);
+        employeeNameCol.setCellValueFactory(cellData -> {
+            Employee employee = PayrollProcessor.shared().getEmployeeById(cellData.getValue().getEmployeeId());
+            return new javafx.beans.property.SimpleStringProperty(
+                employee != null ? employee.getFullName() : "Unknown"
+            );
+        });
 
         TableColumn<PayrollRecord, String> periodCol = new TableColumn<>("Pay Period");
         periodCol.setMinWidth(150);
@@ -184,15 +249,22 @@ public class PayrollProcessingView extends VBox {
 
         // Add all columns to the table
         payrollTable.getColumns().addAll(
-            employeeIdCol, periodCol, grossPayCol, netPayCol, creationDateCol
+            employeeIdCol,
+            employeeNameCol,
+            periodCol,
+            grossPayCol,
+            netPayCol,
+            creationDateCol
         );
 
         // Make the table resizable
         payrollTable.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
 
-        // Enable/disable view paycheck button based on selection
+        // Enable/disable view paycheck and delete buttons based on selection
         payrollTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            viewPaycheckButton.setDisable(newSelection == null);
+            boolean hasSelection = newSelection != null;
+            viewPaycheckButton.setDisable(!hasSelection);
+            deleteButton.setDisable(!hasSelection);
         });
     }
 
@@ -218,6 +290,8 @@ public class PayrollProcessingView extends VBox {
                 String.format("Successfully processed payroll for %d employees", 
                 result.getEmployeesProcessed())
             );
+            // Refresh the table to show new records
+            refreshPayrollTable();
         } else {
             StringBuilder message = new StringBuilder("Payroll processing failed:\n\n");
             

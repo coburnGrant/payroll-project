@@ -170,6 +170,8 @@ public class TimeEntryEditView extends VBox {
             if (onCancel != null) {
                 onCancel.run();
             }
+            // Close the window
+            this.getScene().getWindow().hide();
         });
 
         HBox buttonBox = new HBox(10);

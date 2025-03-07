@@ -147,6 +147,7 @@ public class EmployeePaychecksView extends VBox {
 
         PaycheckView paycheckView = new PaycheckView(stage, employee, record, stage::close);
         Scene scene = new Scene(paycheckView);
+        scene.getStylesheets().addAll(this.getScene().getStylesheets());
         stage.setScene(scene);
         stage.showAndWait();
     }

@@ -10,8 +10,10 @@ import grant.coburn.model.Employee;
 import grant.coburn.model.TimeEntry;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -20,10 +22,8 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-import javafx.stage.Stage;
 import javafx.stage.Modality;
-import javafx.scene.Scene;
-import javafx.scene.control.ButtonType;
+import javafx.stage.Stage;
 
 public class TimeSheetView extends BorderPane {
     private final Employee employee;
@@ -32,6 +32,7 @@ public class TimeSheetView extends BorderPane {
     private Button editButton;
     private Button deleteButton;
     private Button backButton;
+    private Button addTimeEntryButton;
     private Runnable onBack;
 
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.US);
@@ -79,6 +80,7 @@ public class TimeSheetView extends BorderPane {
         editButton = new Button("Edit Entry");
         deleteButton = new Button("Delete Entry");
         backButton = new Button("Back to Dashboard");
+        addTimeEntryButton = new Button("Add Entry");
 
         editButton.setDisable(true);
         deleteButton.setDisable(true);
@@ -86,16 +88,18 @@ public class TimeSheetView extends BorderPane {
         editButton.getStyleClass().add("button-primary");
         deleteButton.getStyleClass().addAll("button-secondary", "button-danger");
         backButton.getStyleClass().add("button-secondary");
-
+        addTimeEntryButton.getStyleClass().add("button-primary");
         editButton.setOnAction(e -> handleEdit());
         deleteButton.setOnAction(e -> handleDelete());
+        addTimeEntryButton.setOnAction(e -> handleAddTimeEntry());
+
         backButton.setOnAction(e -> {
             if (onBack != null) {
                 onBack.run();
             }
         });
 
-        buttonBar.getChildren().addAll(editButton, deleteButton, backButton);
+        buttonBar.getChildren().addAll(addTimeEntryButton, editButton, deleteButton, backButton);
         this.setBottom(buttonBar);
 
         // Set up table selection listener
@@ -187,6 +191,29 @@ public class TimeSheetView extends BorderPane {
     private void loadTimeEntries() {
         timeEntryTable.getItems().clear();
         timeEntryTable.getItems().addAll(TimeEntryDAO.shared.getTimeEntriesByEmployeeId(employee.getEmployeeId()));
+    }
+
+    private void handleAddTimeEntry() {
+        Stage addStage = new Stage();
+        addStage.initOwner(stage);
+        addStage.initModality(Modality.APPLICATION_MODAL);
+        addStage.setTitle("Add Time Entry");
+
+        TimeEntryView addView = new TimeEntryView(employee);
+        addView.setOnBack(() -> {
+            loadTimeEntries(); // Refresh the table after adding
+            addStage.close();
+        });
+
+        addView.setOnSave(() -> {
+            loadTimeEntries(); // Refresh the table after adding
+            addStage.close();
+        });
+
+        Scene scene = new Scene(addView);
+        scene.getStylesheets().addAll(stage.getScene().getStylesheets());
+        addStage.setScene(scene);
+        addStage.showAndWait();
     }
 
     private void handleEdit() {

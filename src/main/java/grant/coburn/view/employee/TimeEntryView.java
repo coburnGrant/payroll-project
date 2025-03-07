@@ -43,7 +43,7 @@ public class TimeEntryView extends VBox {
     private Button saveButton;
     private Button backButton;
     private Runnable onBack;
-
+    private Runnable onSave;
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.US);
 
     private String formatPercent(double percent) {
@@ -59,10 +59,15 @@ public class TimeEntryView extends VBox {
         this.onBack = onBack;
     }
 
+    public void setOnSave(Runnable onSave) {
+        this.onSave = onSave;
+    }
+
     private void setupUI() {
         this.setAlignment(Pos.TOP_CENTER);
         this.setPadding(new Insets(20));
         this.setSpacing(20);
+        this.setMinWidth(600);  // Set minimum width for the entire view
 
         Text title = new Text("Time Entry");
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
@@ -71,6 +76,7 @@ public class TimeEntryView extends VBox {
         VBox content = new VBox(20);
         content.setAlignment(Pos.TOP_CENTER);
         content.setPadding(new Insets(10));
+        content.setMinWidth(580);  // Set minimum width for content
 
         // Employee info section
         VBox infoBox = new VBox(10);
@@ -183,6 +189,8 @@ public class TimeEntryView extends VBox {
         // Create ScrollPane and add content
         ScrollPane scrollPane = new ScrollPane(content);
         scrollPane.setFitToWidth(true);
+        scrollPane.setMinWidth(580);  // Set minimum width for scroll pane
+        scrollPane.setPrefWidth(600);  // Set preferred width for scroll pane
         scrollPane.setStyle("-fx-background-color: transparent;");
 
         // Add title and scrollPane to main VBox
@@ -256,12 +264,16 @@ public class TimeEntryView extends VBox {
             boolean success = grant.coburn.dao.TimeEntryDAO.shared.saveTimeEntry(entry);
             
             if (success) {
+                if (onSave != null) {
+                    onSave.run();
+                }
+                
                 showSuccess("Time entry saved successfully!");
                 // Clear form
                 datePicker.setValue(LocalDate.now());
                 hoursField.clear();
                 ptoCheckBox.setSelected(false);
-                updateCalculations();
+                updateCalculations();   
             } else {
                 showError("Failed to save time entry. Please try again.");
             }

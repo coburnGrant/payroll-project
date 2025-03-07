@@ -2,6 +2,8 @@ package grant.coburn.view.admin;
 
 import java.io.File;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import grant.coburn.report.ReportFormat;
 import grant.coburn.report.ReportGenerator;
@@ -10,12 +12,11 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.stage.FileChooser;
 
 /**
  * View for generating payroll reports.
@@ -23,7 +24,8 @@ import javafx.stage.FileChooser;
 public class GenerateReportView extends VBox {
     private final DatePicker startDatePicker;
     private final DatePicker endDatePicker;
-    private final ComboBox<ReportFormat> formatComboBox;
+    private final VBox formatSelectionBox;
+    private final List<CheckBox> formatCheckBoxes;
 
     public GenerateReportView() {
         setAlignment(Pos.TOP_CENTER);
@@ -46,33 +48,40 @@ public class GenerateReportView extends VBox {
         );
 
         // Format selection
-        formatComboBox = new ComboBox<>();
-        formatComboBox.getItems().addAll(ReportFormat.values());
-        formatComboBox.setValue(ReportFormat.PDF);
+        formatSelectionBox = new VBox(5); // 5px spacing
+        formatSelectionBox.setPadding(new Insets(5));
+        formatCheckBoxes = new ArrayList<>();
         
-        HBox formatBox = new HBox(10);
-        formatBox.setAlignment(Pos.CENTER);
-        formatBox.getChildren().addAll(
-            new Label("Report Format:"), 
-            formatComboBox
-        );
-
+        for (ReportFormat format : ReportFormat.values()) {
+            CheckBox cb = new CheckBox(format.toString());
+            if (format == ReportFormat.PDF) {
+                cb.setSelected(true); // Default selection
+            }
+            formatCheckBoxes.add(cb);
+            formatSelectionBox.getChildren().add(cb);
+        }
+        
         // Generate button
-        Button generateButton = new Button("Generate Report");
+        Button generateButton = new Button("Generate Reports");
         generateButton.setOnAction(e -> generateReport());
 
         getChildren().addAll(
             titleLabel,
             dateBox,
-            formatBox,
+            formatSelectionBox,
             generateButton
         );
     }
 
     private void generateReport() {
+        List<ReportFormat> selectedFormats = getSelectedFormats();
+        if (selectedFormats.isEmpty()) {
+            showError("Please select at least one report format");
+            return;
+        }
+
         LocalDate startDate = startDatePicker.getValue();
         LocalDate endDate = endDatePicker.getValue();
-        ReportFormat format = formatComboBox.getValue();
 
         if (startDate == null || endDate == null) {
             showError("Please select both start and end dates");
@@ -84,26 +93,49 @@ public class GenerateReportView extends VBox {
             return;
         }
 
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setInitialFileName("payroll_report_" + 
-            startDate.toString() + "_to_" + endDate.toString() + 
-            format.getFileExtension());
+        // Let user choose the output directory
+        javafx.stage.DirectoryChooser dirChooser = new javafx.stage.DirectoryChooser();
+        dirChooser.setTitle("Choose Output Directory");
+        dirChooser.setInitialDirectory(new File(System.getProperty("user.home") + File.separator + "Downloads"));
+        File outputDir = dirChooser.showDialog(getScene().getWindow());
         
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter(
-            format.getDisplayName(),
-            "*" + format.getFileExtension()
-        ));
+        if (outputDir == null) {
+            return; // User cancelled
+        }
 
-        File file = fileChooser.showSaveDialog(getScene().getWindow());
-        if (file != null) {
-            try {
+        List<String> generatedFiles = new ArrayList<>();
+        try {
+            for (ReportFormat format : selectedFormats) {
+                String baseFileName = "payroll_report_" + 
+                    startDate.toString() + "_to_" + endDate.toString();
+                String filePath = outputDir.getAbsolutePath() + 
+                    File.separator + baseFileName + 
+                    format.getFileExtension();
+
                 ReportGenerator generator = ReportGeneratorFactory.createGenerator(format);
-                generator.generateReport(file.getAbsolutePath(), startDate, endDate);
-                showSuccess("Report generated successfully!");
-            } catch (Exception e) {
-                showError("Failed to generate report: " + e.getMessage());
+                generator.generateReport(filePath, startDate, endDate);
+                generatedFiles.add(filePath);
+            }
+            
+            // Show success message with all generated file paths
+            StringBuilder message = new StringBuilder("Reports generated successfully!\nLocations:\n");
+            for (String path : generatedFiles) {
+                message.append(path).append("\n");
+            }
+            showSuccess(message.toString());
+        } catch (Exception e) {
+            showError("Failed to generate report: " + e.getMessage());
+        }
+    }
+
+    private List<ReportFormat> getSelectedFormats() {
+        List<ReportFormat> selectedFormats = new ArrayList<>();
+        for (int i = 0; i < formatCheckBoxes.size(); i++) {
+            if (formatCheckBoxes.get(i).isSelected()) {
+                selectedFormats.add(ReportFormat.values()[i]);
             }
         }
+        return selectedFormats;
     }
 
     private void showError(String message) {

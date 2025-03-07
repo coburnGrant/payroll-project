@@ -81,10 +81,11 @@ public class EmployeeManagementView extends BorderPane {
         viewTimeSheetButton = new Button("View Time Sheet");
         viewTimeSheetButton.setDisable(true);
 
+        //NOTE - This button is used to add test employees to the system. It is not used in the final product.
         // Add test employees button
-        Button addTestEmployeesButton = new Button("Add Test Employees");
-        addTestEmployeesButton.getStyleClass().add("button-secondary");
-        addTestEmployeesButton.setOnAction(e -> handleAddTestEmployees());
+        // Button addTestEmployeesButton = new Button("Add Test Employees");
+        // addTestEmployeesButton.getStyleClass().add("button-secondary");
+        // addTestEmployeesButton.setOnAction(e -> handleAddTestEmployees());
 
         // Button actions
         addButton.setOnAction(e -> handleAddEmployee());
@@ -98,7 +99,7 @@ public class EmployeeManagementView extends BorderPane {
         buttonBox.setPadding(new Insets(20, 0, 0, 0));
         buttonBox.setAlignment(Pos.CENTER_RIGHT);
         buttonBox.getChildren().addAll(
-            addTestEmployeesButton,  // Add the new button
+            // addTestEmployeesButton,  // Will be used to add test employees to the system. Not used in the final product. 
             addButton, 
             editButton, 
             deleteButton, 

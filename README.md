@@ -7,6 +7,9 @@ A comprehensive payroll management system built with Java and MySQL, featuring r
 1. **Database Setup**
    - Install MySQL if not already installed
    - Create a new database named `payroll_system`
+   ```sql
+   CREATE DATABASE payroll_system;
+   ```
    - Run the schema file located at `src/main/resources/schema.sql`
    ```bash
    mysql -u your_username -p payroll_system < src/main/resources/schema.sql
@@ -60,23 +63,23 @@ This project utilizes the Data Access Object (DAO) design paradigm to handle CRU
 
 ### Project Timeline
 
-### Week 1-2: Setup and Basic Structure
+#### Week 1-2: Setup and Basic Structure
 - Project planning
 - Database schema design
 - Basic UI implementation
 - Authentication system
 
-### Week 3-4: Core Features
+#### Week 3-4: Core Features
 - Time entry system
 - Employee management
 - Basic payroll processing
 
-### Week 5-6: Advanced Features
+#### Week 5-6: Advanced Features
 - Tax calculations
 - Benefits management
 - Report generation
 
-### Week 7-8: Testing and Refinement
+#### Week 7-8: Testing and Refinement
 - System testing
 - Bug fixes
 - Documentation
@@ -86,8 +89,10 @@ This project utilizes the Data Access Object (DAO) design paradigm to handle CRU
 
 #### JUnit Tests
 - Unit tests have been created to test and verify the functionality of critical functions of the application. Such as password encryption, data validation, and payroll calculations.
-- GitHub Actions
-   - This repository has been set up to run these unit tests on every commit/pull request to the `main` branch. 
+
+#### GitHub Actions
+- This repository is configured to automatically run unit tests on every commit and pull request to the `main` branch.
+- This ensures continuous integration and helps catch bugs early in the development cycle.
 
 ### Security Measures
 - Role-based access control (Admin/Employee)

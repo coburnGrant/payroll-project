@@ -17,7 +17,7 @@ A comprehensive payroll management system built with Java and MySQL, featuring r
 
 2. **Application Setup**
    - Clone the repository
-   - Configure database connection in `src/main/resources/config.properties`
+   - Configure database connection in `src/main/java/grant/coburn/util/DBProperties.java`
    - Build the project:
    ```bash
    mvn clean install
@@ -93,6 +93,7 @@ This project utilizes the Data Access Object (DAO) design paradigm to handle CRU
 #### GitHub Actions
 - This repository is configured to automatically run unit tests on every commit and pull request to the `main` branch.
 - This ensures continuous integration and helps catch bugs early in the development cycle.
+- Workflow runs can be found here on [GitHub](https://github.com/coburnGrant/payroll-project/actions)
 
 ### Security Measures
 - Role-based access control (Admin/Employee)

@@ -2,6 +2,7 @@ package grant.coburn.view.admin;
 
 import java.text.NumberFormat;
 import java.util.Locale;
+import java.util.Optional;
 
 import grant.coburn.dao.EmployeeDAO;
 import grant.coburn.model.Employee;
@@ -14,8 +15,10 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
@@ -78,6 +81,11 @@ public class EmployeeManagementView extends BorderPane {
         viewTimeSheetButton = new Button("View Time Sheet");
         viewTimeSheetButton.setDisable(true);
 
+        // Add test employees button
+        Button addTestEmployeesButton = new Button("Add Test Employees");
+        addTestEmployeesButton.getStyleClass().add("button-secondary");
+        addTestEmployeesButton.setOnAction(e -> handleAddTestEmployees());
+
         // Button actions
         addButton.setOnAction(e -> handleAddEmployee());
         editButton.setOnAction(e -> handleEditEmployee());
@@ -89,7 +97,14 @@ public class EmployeeManagementView extends BorderPane {
         HBox buttonBox = new HBox(10);
         buttonBox.setPadding(new Insets(20, 0, 0, 0));
         buttonBox.setAlignment(Pos.CENTER_RIGHT);
-        buttonBox.getChildren().addAll(addButton, editButton, deleteButton, viewTimeSheetButton, backButton);
+        buttonBox.getChildren().addAll(
+            addTestEmployeesButton,  // Add the new button
+            addButton, 
+            editButton, 
+            deleteButton, 
+            viewTimeSheetButton, 
+            backButton
+        );
 
         this.setBottom(buttonBox);
 
@@ -179,40 +194,107 @@ public class EmployeeManagementView extends BorderPane {
             );
             stage.getScene().setRoot(formView);
         } else {
-            showAlert("Please select an employee to edit", AlertType.INFORMATION);
+            showAlert("Warning", "Please select an employee to edit");
         }
     }
 
     private void handleDeleteEmployee() {
-        Employee selected = employeeTable.getSelectionModel().getSelectedItem();
-        if (selected != null) {
-            if (employeeDAO.deleteEmployee(selected.getEmployeeId())) {
+        Employee selectedEmployee = employeeTable.getSelectionModel().getSelectedItem();
+        if (selectedEmployee == null) {
+            showAlert("Warning", "Please select an employee to delete");
+            return;
+        }
+
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Delete Employee");
+        dialog.setHeaderText("Choose Delete Option");
+
+        // Create custom buttons
+        ButtonType softDeleteButton = new ButtonType("Soft Delete (Inactive)", ButtonBar.ButtonData.LEFT);
+        ButtonType hardDeleteButton = new ButtonType("Hard Delete (Permanent)", ButtonBar.ButtonData.RIGHT);
+        ButtonType cancelButton = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+        dialog.getDialogPane().getButtonTypes().addAll(softDeleteButton, hardDeleteButton, cancelButton);
+
+        // Add explanation and warning text
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(10));
+        
+        Label explanationLabel = new Label(
+            "Choose how to delete employee: " + selectedEmployee.getFullName()
+        );
+        explanationLabel.setStyle("-fx-font-weight: bold");
+        
+        content.getChildren().addAll(
+            explanationLabel,
+            new Label("Soft Delete: Marks the employee as inactive but preserves all records."),
+            new Label("Hard Delete: Permanently removes the employee and all associated records.")
+        );
+        
+        // Add warning for hard delete
+        Label warningLabel = new Label("WARNING: Hard delete cannot be undone!");
+        warningLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold");
+        content.getChildren().add(warningLabel);
+
+        dialog.getDialogPane().setContent(content);
+
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isPresent()) {
+            if (result.get() == softDeleteButton) {
+                // Confirm soft delete
+                if (confirmDelete("Confirm Soft Delete", 
+                    "Are you sure you want to mark " + selectedEmployee.getFullName() + " as inactive?")) {
+                    processDeleteEmployee(selectedEmployee.getEmployeeId(), false);
+                }
+            } else if (result.get() == hardDeleteButton) {
+                // Double confirm hard delete
+                if (confirmDelete("Confirm Hard Delete", 
+                    "WARNING: This will permanently delete " + selectedEmployee.getFullName() + 
+                    " and all associated records!\n\n" +
+                    "This includes:\n" +
+                    "- All payroll records\n" +
+                    "- All time entries\n" +
+                    "- User account\n" +
+                    "- Employee information\n\n" +
+                    "This action cannot be undone.\n\n" +
+                    "Are you absolutely sure you want to proceed?")) {
+                    processDeleteEmployee(selectedEmployee.getEmployeeId(), true);
+                }
+            }
+        }
+    }
+
+    private boolean confirmDelete(String title, String message) {
+        Alert alert = new Alert(AlertType.CONFIRMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        
+        return alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK;
+    }
+
+    private void processDeleteEmployee(String employeeId, boolean hardDelete) {
+        try {
+            boolean success = employeeDAO.deleteEmployee(employeeId, hardDelete);
+            if (success) {
+                showAlert("Success", hardDelete ? 
+                    "Employee has been permanently deleted." : 
+                    "Employee has been marked as inactive.");
                 loadEmployees();
             } else {
-                showAlert("Failed to delete employee", AlertType.ERROR);
+                showAlert("Error", "Failed to delete employee");
             }
-        } else {
-            showAlert("Please select an employee to delete", AlertType.INFORMATION);
+        } catch (Exception e) {
+            showAlert("Error", "Error deleting employee: " + e.getMessage());
         }
     }
 
-    private void handleBack() {
-        if (onBack != null) {
-            onBack.run();
-        }
-    }
-
-    private void showAlert(String message, Alert.AlertType type) {
-        Alert alert = new Alert(type);
-        alert.setTitle("Warning");
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
-    }
-
-    private void loadEmployees() {
-        ObservableList<Employee> employees = FXCollections.observableArrayList(employeeDAO.getAllEmployees());
-        employeeTable.setItems(employees);
     }
 
     private void saveNewEmployee(Employee employee) {
@@ -222,7 +304,45 @@ public class EmployeeManagementView extends BorderPane {
             loadEmployees();
             stage.getScene().setRoot(this);
         } else {
-            showAlert("Failed to create employee", Alert.AlertType.ERROR);
+            showAlert("Error", "Failed to create employee");
+        }
+    }
+
+    private void updateEmployee(Employee employee) {
+        if (employeeDAO.updateEmployee(employee)) {
+            loadEmployees();
+            stage.getScene().setRoot(this);
+        } else {
+            showAlert("Error", "Failed to update employee");
+        }
+    }
+
+    private void loadEmployees() {
+        ObservableList<Employee> employees = FXCollections.observableArrayList(employeeDAO.getAllEmployees());
+        employeeTable.setItems(employees);
+    }
+
+    private void viewSelectedEmployeeTimeSheet() {
+        Employee selectedEmployee = employeeTable.getSelectionModel().getSelectedItem();
+        if (selectedEmployee != null) {
+            Stage timeSheetStage = new Stage();
+            timeSheetStage.initOwner(stage);
+            
+            TimeSheetView timeSheetView = new TimeSheetView(selectedEmployee, timeSheetStage);
+            timeSheetView.setOnBack(() -> timeSheetStage.close());
+            
+            javafx.scene.Scene scene = new javafx.scene.Scene(timeSheetView, 800, 600);
+            scene.getStylesheets().addAll(stage.getScene().getStylesheets());
+            
+            timeSheetStage.setTitle("Time Sheet - " + selectedEmployee.getFullName());
+            timeSheetStage.setScene(scene);
+            timeSheetStage.show();
+        }
+    }
+
+    private void handleBack() {
+        if (onBack != null) {
+            onBack.run();
         }
     }
 
@@ -247,30 +367,22 @@ public class EmployeeManagementView extends BorderPane {
         dialog.showAndWait();
     }
 
-    private void updateEmployee(Employee employee) {
-        if (employeeDAO.updateEmployee(employee)) {
-            loadEmployees();
-            stage.getScene().setRoot(this);
-        } else {
-            showAlert("Failed to update employee", AlertType.ERROR);
-        }
-    }
+    private void handleAddTestEmployees() {
+        Alert confirmAlert = new Alert(AlertType.CONFIRMATION);
+        confirmAlert.setTitle("Add Test Employees");
+        confirmAlert.setHeaderText("Add Test Employee Data");
+        confirmAlert.setContentText("This will add 12 test employees to the system.\n" +
+                                  "Would you like to proceed?");
 
-    private void viewSelectedEmployeeTimeSheet() {
-        Employee selectedEmployee = employeeTable.getSelectionModel().getSelectedItem();
-        if (selectedEmployee != null) {
-            Stage timeSheetStage = new Stage();
-            timeSheetStage.initOwner(stage);
-            
-            TimeSheetView timeSheetView = new TimeSheetView(selectedEmployee, timeSheetStage);
-            timeSheetView.setOnBack(() -> timeSheetStage.close());
-            
-            javafx.scene.Scene scene = new javafx.scene.Scene(timeSheetView, 800, 600);
-            scene.getStylesheets().addAll(stage.getScene().getStylesheets());
-            
-            timeSheetStage.setTitle("Time Sheet - " + selectedEmployee.getFullName());
-            timeSheetStage.setScene(scene);
-            timeSheetStage.show();
+        Optional<ButtonType> result = confirmAlert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            try {
+                employeeDAO.insertTestEmployees();
+                showAlert("Success", "Test employees have been added successfully.");
+                loadEmployees();
+            } catch (Exception e) {
+                showAlert("Error", "Failed to add test employees: " + e.getMessage());
+            }
         }
     }
 } 

@@ -219,10 +219,6 @@ public class EmployeeFormView extends VBox {
     }
 
     private boolean validateInput() {
-        if (employeeIdField.getText().isEmpty() || !employeeIdField.getText().matches("EMP\\d{4}")) {
-            showError("Employee ID must be in format EMP####");
-            return false;
-        }
         if (departmentField.getText().isEmpty()) {
             showError("Department is required");
             return false;

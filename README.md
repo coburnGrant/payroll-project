@@ -146,9 +146,9 @@ This project utilizes the Data Access Object (DAO) design paradigm to handle CRU
 - From the employee management screen an admin can:
    1. View all employees
    2. Add new employees
-      - ![add employee screen](./documentation/screenshots/admin/add%20employee.png)
+      ![add employee screen](./documentation/screenshots/admin/add%20employee.png)
       - After adding employee information and creating an employee, a popup with a auto-generated password will be displayed with the employee's login credentials
-         - ![login creds](./documentation/screenshots/admin/login%20credentials.png)
+         ![login creds](./documentation/screenshots/admin/login%20credentials.png)
    3. Edit existing employee records
    4. View employee time sheet
    5. Search for employees
@@ -184,31 +184,31 @@ This project utilizes the Data Access Object (DAO) design paradigm to handle CRU
 
 ##### Initial Login
 - Upon the initial login of an employee, the employee must change their password to a more secure password than the auto-generated password created by the admin.
-- ![change password screen](./documentation/screenshots/employee/change%20password.png)
-   - If passwords do not match the requirements, popups will be issued
-      - ![upper case char required](./documentation/screenshots/employee/password%20error%20-%20uppercase.png)
-      - ![special char required](./documentation/screenshots/employee/password%20error%20-%20special%20char.png)
+![change password screen](./documentation/screenshots/employee/change%20password.png)
+
+- If passwords do not match the requirements, popups will be issued
+      ![upper case char required](./documentation/screenshots/employee/password%20error%20-%20uppercase.png)
+      ![special char required](./documentation/screenshots/employee/password%20error%20-%20special%20char.png)
 
 ##### Dashboard 
 
 After changing password successfully, the employee dashboard will be displayed 
 
 For salaried employees:
-- ![salaried employee dashboard](./documentation/screenshots/employee/employee%20dashboard%20-%20salary.png)
+![salaried employee dashboard](./documentation/screenshots/employee/employee%20dashboard%20-%20salary.png)
 
 For hourly employees:
-- ![hourly employee dashboard](./documentation/screenshots/employee/employee%20dashboard%20-%20hourly.png)
+![hourly employee dashboard](./documentation/screenshots/employee/employee%20dashboard%20-%20hourly.png)
 
 ##### Time Entry
-
 For salaried employees:
 - Salaried employees will not be able to enter regular time since they are on salary
-   - ![salary time entry screen](./documentation/screenshots/employee/employee%20time%20entry%20-%20salary.png)
+   ![salary time entry screen](./documentation/screenshots/employee/employee%20time%20entry%20-%20salary.png)
 - However, they will be able to enter PTO
-   - ![pto time entry](./documentation/screenshots/employee/employee%20time%20entry%20-%20salary%20pto.png)
+   ![pto time entry](./documentation/screenshots/employee/employee%20time%20entry%20-%20salary%20pto.png)
 
 For hourly employees:
-- ![time entry screen](./documentation/screenshots/employee/employee%20time%20entry%20-%20hourly.png)
+![time entry screen](./documentation/screenshots/employee/employee%20time%20entry%20-%20hourly.png)
    - A preview of how much they will get paid for this entry is displayed below the entry textbox. This is just a preview and calculations like deductions may not be completely accurate due to factors like pay period length and deductions.
 
 ##### Time Sheet
@@ -221,4 +221,4 @@ For hourly employees:
 - Employees will be able to view all of their generated paychecks
 
 - An employee can click on a paycheck to view more details
-   - ![paycheck details](./documentation/screenshots/employee/paycheck%20details.png)
+   ![paycheck details](./documentation/screenshots/employee/paycheck%20details.png)

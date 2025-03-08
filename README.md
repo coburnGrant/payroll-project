@@ -2,6 +2,27 @@
 
 A comprehensive payroll management system built with Java and MySQL, featuring role-based access control, time entry management, payroll processing, and reporting capabilities.
 
+## Table of Contents
+- [Setup Instructions](#setup-instructions)
+- [Documentation](#documentation)
+  - [Technologies Used](#technologies-used)
+  - [Database Design](#database-design)
+- [Main Actors](#main-actors)
+- [Project Timeline](#project-timeline)
+- [Testing Procedures](#testing-procedures)
+- [Security Measures](#security-measures)
+- [Features and Functionality](#features-and-functionality)
+  - [Login Screen](#login-screen)
+  - [Admin Dashboard](#admin-dashboard)
+    - [Employee Management](#employee-management)
+    - [Payroll Processing](#payroll-processing)
+    - [Report Generation](#report-generation)
+  - [Employee Dashboard](#employee-dashboard)
+    - [Initial Login](#initial-login)
+    - [Time Entry](#time-entry)
+    - [Time Sheet](#time-sheet)
+    - [Paychecks](#paychecks)
+
 ## Setup Instructions
 
 1. **Database Setup**
@@ -148,7 +169,7 @@ This project utilizes the Data Access Object (DAO) design paradigm to handle CRU
 - After processing payroll, an admin can generate PDF and CSV reports for any given pay period
 
 ![report generation screen](./documentation/screenshots/admin/generate%20reports.png)
-- To generate report:
+- To generate reports:
    1. Select the pay period you wish to report on
    2. Select the report types you wish to generate (PDF or CSV)
    3. Click "Generate Reports"
@@ -192,7 +213,7 @@ For hourly employees:
 
 ##### Time Sheet
 ![time sheet](./documentation/screenshots/employee/employee%20time%20sheet.png)
-- Employees are able to view their a record of all their time entries. 
+- Employees are able to view a record of all their time entries. 
 - Employees will be allowed to edit their entries until payroll is processed. Entries will be "locked" after processing payroll and no longer editable.
 
 ##### Paychecks

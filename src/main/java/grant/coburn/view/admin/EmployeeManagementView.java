@@ -22,6 +22,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -35,6 +36,8 @@ public class EmployeeManagementView extends BorderPane {
     private Button deleteButton;
     private Button backButton;
     private Button viewTimeSheetButton;
+    private TextField searchField;
+    private ObservableList<Employee> allEmployees;
     private Runnable onBack;
     private final EmployeeDAO employeeDAO = EmployeeDAO.shared;
     private final Stage stage;
@@ -62,13 +65,29 @@ public class EmployeeManagementView extends BorderPane {
         this.setTop(titleBox);
 
         // Create the table
-        VBox tableCard = new VBox(20);
+        VBox tableCard = new VBox(10);  // Reduced spacing to accommodate search box
         tableCard.getStyleClass().add("card");
         tableCard.setPadding(new Insets(20));
         
         employeeTable = new TableView<>();
         setupTable();
-        tableCard.getChildren().add(employeeTable);
+        
+        // Create search box
+        HBox searchBox = new HBox(10);
+        searchBox.setAlignment(Pos.CENTER_LEFT);
+        searchBox.setPadding(new Insets(0, 0, 10, 0));
+        
+        Label searchLabel = new Label("Search:");
+        searchField = new TextField();
+        searchField.setPromptText("Search by ID, name, department, or job title...");
+        searchField.setPrefWidth(300);
+        searchField.textProperty().addListener((observable, oldValue, newValue) -> {
+            filterEmployees(newValue);
+        });
+        
+        searchBox.getChildren().addAll(searchLabel, searchField);
+        
+        tableCard.getChildren().addAll(searchBox, employeeTable);
         
         this.setCenter(tableCard);
 
@@ -318,9 +337,34 @@ public class EmployeeManagementView extends BorderPane {
         }
     }
 
+    private void filterEmployees(String searchText) {
+        if (searchText == null || searchText.isEmpty()) {
+            employeeTable.setItems(allEmployees);
+            return;
+        }
+
+        String lowerCaseFilter = searchText.toLowerCase();
+        ObservableList<Employee> filteredList = allEmployees.filtered(employee -> {
+            String id = employee.getEmployeeId().toLowerCase();
+            String name = employee.getFullName().toLowerCase();
+            String department = employee.getDepartment().toLowerCase();
+            String jobTitle = employee.getJobTitle().toLowerCase();
+
+            return id.contains(lowerCaseFilter) ||
+                   name.contains(lowerCaseFilter) ||
+                   department.contains(lowerCaseFilter) ||
+                   jobTitle.contains(lowerCaseFilter);
+        });
+
+        employeeTable.setItems(filteredList);
+    }
+
     private void loadEmployees() {
-        ObservableList<Employee> employees = FXCollections.observableArrayList(employeeDAO.getAllEmployees());
-        employeeTable.setItems(employees);
+        allEmployees = FXCollections.observableArrayList(employeeDAO.getAllEmployees());
+        employeeTable.setItems(allEmployees);
+        if (searchField != null && !searchField.getText().isEmpty()) {
+            filterEmployees(searchField.getText());
+        }
     }
 
     private void viewSelectedEmployeeTimeSheet() {

@@ -70,6 +70,13 @@ A comprehensive payroll management system built with Java and MySQL, featuring r
 
 ### Main Actors
 
+The UML for these main actors can be found here on GitHub
+- [Draw.io](./documentation/uml/src-uml-draw-io.xml)
+- [Markdown](./documentation/uml/src.md)
+
+Or a PNG version can be found here:
+![PNG](./documentation/uml/src.png)
+
 #### Data Access Objects (DAOs)
 
 This project utilizes the Data Access Object (DAO) design paradigm to handle CRUD operations
